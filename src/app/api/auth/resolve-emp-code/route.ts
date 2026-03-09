@@ -14,10 +14,10 @@ export async function POST(request: NextRequest) {
 
         const adminSupabase = createAdminClient();
 
-        // Find member by emp_code returning profile id 
+        // Find member by emp_code returning user_id from employees table
         const { data: member, error } = await adminSupabase
-            .from("profiles")
-            .select("id")
+            .from("employees")
+            .select("tenant_id, email, full_name, user_id")
             .eq("emp_code", empCode.toUpperCase())
             .single();
 
@@ -28,20 +28,10 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Get email from auth.users
-        const { data: userData, error: userError } = await adminSupabase
-            .auth.admin.getUserById(member.id);
-
-        if (userError || !userData?.user?.email) {
-            return NextResponse.json(
-                { ok: false, message: "User not found" },
-                { status: 404 }
-            );
-        }
-
+        // We can just use the employee's direct email
         return NextResponse.json({
             ok: true,
-            email: userData.user.email,
+            email: member.email,
         });
 
     } catch (err) {

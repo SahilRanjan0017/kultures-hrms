@@ -6,6 +6,7 @@ import {
     DollarSign,
     TrendingUp,
 } from "lucide-react";
+import AttendanceWidget from "@/components/dashboard/AttendanceWidget";
 
 export default async function DashboardPage() {
     const supabase = await createClient();
@@ -67,47 +68,55 @@ export default async function DashboardPage() {
                 </p>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {STATS.map((stat) => {
-                    const Icon = stat.icon;
-                    return (
-                        <div
-                            key={stat.label}
-                            className="bg-white rounded-xl border border-zinc-200 p-6 flex items-center gap-4"
-                        >
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${stat.color}`}>
-                                <Icon className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <p className="text-2xl font-bold text-zinc-900">{stat.value}</p>
-                                <p className="text-sm text-zinc-500">{stat.label}</p>
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-8">
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {STATS.map((stat) => {
+                            const Icon = stat.icon;
+                            return (
+                                <div
+                                    key={stat.label}
+                                    className="bg-white rounded-xl border border-zinc-200 p-6 flex items-center gap-4"
+                                >
+                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${stat.color}`}>
+                                        <Icon className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold text-zinc-900">{stat.value}</p>
+                                        <p className="text-sm text-zinc-500">{stat.label}</p>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
 
-            {/* Quick Actions */}
-            <div className="bg-white rounded-xl border border-zinc-200 p-6">
-                <h2 className="text-base font-semibold text-zinc-900 mb-4">
-                    Quick Actions
-                </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {[
-                        { label: "Add Employee", href: "/dashboard/employees/new" },
-                        { label: "Mark Attendance", href: "/dashboard/attendance" },
-                        { label: "Approve Leaves", href: "/dashboard/leaves" },
-                        { label: "Run Payroll", href: "/dashboard/payroll" },
-                    ].map((action) => (
-                        <a
-                            key={action.label}
-                            href={action.href}
-                            className="text-center px-4 py-3 rounded-lg border border-zinc-200 text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 transition-colors"
-                        >
-                            {action.label}
-                        </a>
-                    ))}
+                    {/* Quick Actions */}
+                    <div className="bg-white rounded-xl border border-zinc-200 p-6">
+                        <h2 className="text-base font-semibold text-zinc-900 mb-4">
+                            Quick Actions
+                        </h2>
+                        <div className="grid grid-cols-2 gap-3">
+                            {[
+                                { label: "Add Employee", href: "/dashboard/employees/new" },
+                                { label: "View Directory", href: "/dashboard/employees" },
+                                { label: "Attendance Logs", href: "/dashboard/attendance" },
+                                { label: "System Settings", href: "/dashboard/settings" },
+                            ].map((action) => (
+                                <a
+                                    key={action.label}
+                                    href={action.href}
+                                    className="text-center px-4 py-3 rounded-lg border border-zinc-200 text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 transition-colors"
+                                >
+                                    {action.label}
+                                </a>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="lg:col-span-1">
+                    <AttendanceWidget />
                 </div>
             </div>
 
@@ -118,8 +127,8 @@ export default async function DashboardPage() {
                 </h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {[
-                        { label: "👥 Employees", status: "Coming Soon" },
-                        { label: "📅 Attendance", status: "Coming Soon" },
+                        { label: "👥 Employees", status: "Active" },
+                        { label: "📅 Attendance", status: "Active" },
                         { label: "🏖️ Leave Management", status: "Coming Soon" },
                         { label: "💰 Payroll", status: "Coming Soon" },
                         { label: "🛡️ Roles & Access", status: "Coming Soon" },
@@ -127,7 +136,7 @@ export default async function DashboardPage() {
                     ].map((mod) => (
                         <div
                             key={mod.label}
-                            className="px-4 py-3 rounded-lg bg-zinc-50 border border-zinc-100"
+                            className={`px-4 py-3 rounded-lg border ${mod.status === 'Active' ? 'bg-zinc-50 border-zinc-200' : 'bg-zinc-50/50 border-zinc-100 opacity-60'}`}
                         >
                             <p className="text-sm font-medium text-zinc-700">{mod.label}</p>
                             <p className="text-xs text-zinc-400 mt-0.5">{mod.status}</p>

@@ -20,9 +20,19 @@ export default async function TeamPage() {
 
     const { data: members } = await supabase
         .from("tenant_members")
-        .select("id, role, status, created_at, emp_code")
+        .select(`
+            id, role, status, created_at,
+            employee:employees(emp_code, full_name)
+        `)
         .eq("tenant_id", membership.tenant_id)
         .order("created_at", { ascending: false });
+
+    // Transform to flat structure for the UI
+    const transformedMembers = members?.map(m => ({
+        ...m,
+        emp_code: Array.isArray(m.employee) ? m.employee[0]?.emp_code : (m.employee as any)?.emp_code,
+        full_name: Array.isArray(m.employee) ? m.employee[0]?.full_name : (m.employee as any)?.full_name
+    }));
 
     return (
         <RoleGuard role={membership.role as Role} permission="team:view">
@@ -56,7 +66,7 @@ export default async function TeamPage() {
                     </div>
 
                     <div className="divide-y divide-zinc-100">
-                        {members?.map((member) => (
+                        {transformedMembers?.map((member) => (
                             <div
                                 key={member.id}
                                 className="px-6 py-4 flex items-center justify-between"
@@ -67,10 +77,10 @@ export default async function TeamPage() {
                                     </div>
                                     <div>
                                         <p className="text-sm font-medium text-zinc-900">
-                                            {member.emp_code ?? "—"}
+                                            {member.full_name || member.emp_code || "—"}
                                         </p>
                                         <p className="text-xs text-zinc-400">
-                                            Joined {new Date(member.created_at).toLocaleDateString("en-IN")}
+                                            {member.emp_code} • Joined {new Date(member.created_at).toLocaleDateString("en-IN")}
                                         </p>
                                     </div>
                                 </div>
@@ -89,7 +99,7 @@ export default async function TeamPage() {
                             </div>
                         ))}
 
-                        {(!members || members.length === 0) && (
+                        {(!transformedMembers || transformedMembers.length === 0) && (
                             <div className="px-6 py-8 text-center text-zinc-400 text-sm">
                                 No team members yet. Invite your first member above.
                             </div>

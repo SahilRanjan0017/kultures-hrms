@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import Link from "next/link";
 
-export default function LoginPage() {
+function LoginContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const urlError = searchParams.get("error"); // ✅ catch OTP expired error
@@ -118,8 +119,8 @@ export default function LoginPage() {
                         type="button"
                         onClick={() => setLoginType("email")}
                         className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${loginType === "email"
-                                ? "bg-zinc-900 text-white"
-                                : "text-zinc-500 hover:text-zinc-900"
+                            ? "bg-zinc-900 text-white"
+                            : "text-zinc-500 hover:text-zinc-900"
                             }`}
                     >
                         Email Login
@@ -128,8 +129,8 @@ export default function LoginPage() {
                         type="button"
                         onClick={() => setLoginType("empcode")}
                         className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${loginType === "empcode"
-                                ? "bg-zinc-900 text-white"
-                                : "text-zinc-500 hover:text-zinc-900"
+                            ? "bg-zinc-900 text-white"
+                            : "text-zinc-500 hover:text-zinc-900"
                             }`}
                     >
                         Employee Code
@@ -169,9 +170,17 @@ export default function LoginPage() {
                     )}
 
                     <div className="space-y-1">
-                        <label className="text-sm font-medium text-zinc-700">
-                            Password
-                        </label>
+                        <div className="flex items-center justify-between">
+                            <label className="text-sm font-medium text-zinc-700">
+                                Password
+                            </label>
+                            <Link
+                                href="/auth/reset-password"
+                                className="text-xs text-zinc-500 hover:text-black transition-colors"
+                            >
+                                Forgot password?
+                            </Link>
+                        </div>
                         <Input
                             type="password"
                             placeholder="Enter your password"
@@ -200,6 +209,18 @@ export default function LoginPage() {
 
             </div>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex min-h-screen items-center justify-center">
+                <div className="animate-spin h-8 w-8 border-4 border-zinc-900 border-t-transparent rounded-full" />
+            </div>
+        }>
+            <LoginContent />
+        </Suspense>
     );
 }
 

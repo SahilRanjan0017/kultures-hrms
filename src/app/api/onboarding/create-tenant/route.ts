@@ -65,12 +65,36 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Step 2 — ✅ Update profiles with tenant_id + role
+        const empCode = "EMP-001";
+
+        // Step 2 — ✅ Insert founder into employees
+        const { data: employeeData, error: employeeError } = await adminSupabase
+            .from("employees")
+            .insert({
+                tenant_id: tenant.id,
+                full_name: user?.user_metadata?.full_name || user.email?.split("@")[0] || "Admin",
+                email: user.email,
+                emp_code: empCode,
+                role: "admin",
+                status: "active",
+                user_id: user.id
+            })
+            .select("id")
+            .single();
+
+        if (employeeError) {
+            console.error("→ Employee insert error:", employeeError.message);
+        }
+
+        const employeeId = employeeData?.id || null;
+
+        // Step 3 — ✅ Update profiles with tenant_id, role, and employee_id
         const { error: profileError } = await adminSupabase
             .from("profiles")
             .update({
                 tenant_id: tenant.id,
                 role: "admin",
+                employee_id: employeeId,
             })
             .eq("id", user.id);
 
@@ -82,13 +106,14 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Step 3 — ✅ Insert into tenant_members
+        // Step 4 — ✅ Insert into tenant_members
         const { error: memberError } = await adminSupabase
             .from("tenant_members")
             .insert({
                 tenant_id: tenant.id,
                 user_id: user.id,
                 role: "admin",
+                employee_id: employeeId,
             });
 
         if (memberError) {

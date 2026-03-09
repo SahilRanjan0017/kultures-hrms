@@ -6,7 +6,7 @@ import { sendEmail } from "@/lib/email";
 // Generate EMP code like EMP-001, EMP-002
 async function generateEmpCode(tenantId: string, adminSupabase: ReturnType<typeof createAdminClient>): Promise<string> {
     const { data: members } = await adminSupabase
-        .from("tenant_members")
+        .from("employees")
         .select("emp_code")
         .eq("tenant_id", tenantId)
         .not("emp_code", "is", null);
@@ -132,30 +132,56 @@ export async function POST(request: NextRequest) {
 
         console.log("→ User created:", newUser.user.id);
 
+        // Insert into employees
+        const { data: employeeData, error: employeeError } = await adminSupabase
+            .from("employees")
+            .insert({
+                tenant_id: membership.tenant_id,
+                full_name: name,
+                email: email,
+                emp_code: empCode,
+                role: role,
+                status: "invited",
+                user_id: newUser.user.id
+            })
+            .select("id")
+            .single();
+
+        if (employeeError) {
+            console.error("→ Employee insert error:", employeeError.message);
+            return NextResponse.json(
+                { ok: false, message: employeeError.message },
+                { status: 400 }
+            );
+        }
+
         // Add to tenant_members
         const { error: memberError } = await adminSupabase
             .from("tenant_members")
             .insert({
                 tenant_id: membership.tenant_id,
                 user_id: newUser.user.id,
+                employee_id: employeeData.id,
                 role,
-                status: "active",
+                status: "invited",
                 must_change_password: true,
-                emp_code: empCode,
                 invited_by: user.id
             });
 
         // Add to profiles
-        await adminSupabase
+        const { error: profileUpdateError } = await adminSupabase
             .from("profiles")
             .update({
                 tenant_id: membership.tenant_id,
                 role,
-                status: "active",
                 is_first_login: true,
-                emp_code: empCode,
+                employee_id: employeeData.id,
             })
             .eq("id", newUser.user.id);
+
+        if (profileUpdateError) {
+            console.error("→ Profile update error after invite:", profileUpdateError.message);
+        }
 
         if (memberError) {
             console.error("→ Member insert error:", memberError.message);
