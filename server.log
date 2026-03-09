@@ -1,0 +1,55 @@
+
+> kultures-hrms@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.3:3000
+- Environments: .env.local
+
+✓ Starting...
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+✓ Ready in 1108ms
+⚠ Cross origin request detected from 127.0.0.1 to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+ GET / 200 in 3.8s (compile: 2.8s, proxy.ts: 4ms, render: 973ms)
+ GET / 200 in 3.2s (compile: 2.2s, proxy.ts: 8ms, render: 1029ms)
+ GET /auth/login 200 in 3.2s (compile: 2.3s, proxy.ts: 19ms, render: 839ms)
+ GET / 200 in 3.9s (compile: 2.8s, proxy.ts: 124ms, render: 975ms)
+ GET / 200 in 808ms (compile: 105ms, proxy.ts: 30ms, render: 673ms)
+ GET / 200 in 797ms (compile: 394ms, proxy.ts: 21ms, render: 382ms)
+ GET / 200 in 240ms (compile: 59ms, proxy.ts: 69ms, render: 112ms)
+Sending password setup email to: kultures-test-345@mailsac.com
+Redirect URL: http://localhost:3000/auth/callback?next=/auth/set-password
+Supabase error: Error [AuthApiError]: Error sending confirmation email
+    at async POST (src/app/api/auth/send-setup-email/route.ts:20:27)
+  18 |         console.log("Redirect URL:", `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/auth/set-password`);
+  19 |
+> 20 |         const { error } = await supabase.auth.signInWithOtp({
+     |                           ^
+  21 |             email,
+  22 |             options: {
+  23 |                 emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/auth/set-password`, {
+  __isAuthError: true,
+  status: 500,
+  code: 'unexpected_failure'
+}
+ POST /api/auth/send-setup-email 400 in 4.6s (compile: 961ms, proxy.ts: 30ms, render: 3.6s)
+ GET / 200 in 240ms (compile: 48ms, proxy.ts: 64ms, render: 127ms)
+Sending password setup email to: test-kultures-888@mailsac.com
+Redirect URL: http://localhost:3000/auth/callback?next=/auth/set-password
+Supabase error: Error [AuthApiError]: Error sending confirmation email
+    at async POST (src/app/api/auth/send-setup-email/route.ts:20:27)
+  18 |         console.log("Redirect URL:", `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/auth/set-password`);
+  19 |
+> 20 |         const { error } = await supabase.auth.signInWithOtp({
+     |                           ^
+  21 |             email,
+  22 |             options: {
+  23 |                 emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/auth/set-password`, {
+  __isAuthError: true,
+  status: 500,
+  code: 'unexpected_failure'
+}
+ POST /api/auth/send-setup-email 400 in 3.6s (compile: 67ms, proxy.ts: 67ms, render: 3.5s)
+ GET /auth/set-password 200 in 2.0s (compile: 1641ms, proxy.ts: 47ms, render: 344ms)
