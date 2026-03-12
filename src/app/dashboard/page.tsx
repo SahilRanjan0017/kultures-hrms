@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import {
     Users,
@@ -7,6 +8,7 @@ import {
     TrendingUp,
 } from "lucide-react";
 import AttendanceWidget from "@/components/dashboard/AttendanceWidget";
+import LeaveTracker from "@/components/dashboard/LeaveTracker";
 
 export default async function DashboardPage() {
     const supabase = await createClient();
@@ -28,22 +30,54 @@ export default async function DashboardPage() {
 
     if (!tenant) redirect("/onboarding");
 
+    const tenantId = membership.tenant_id;
+    const adminSupabase = createAdminClient();
+    const todayDate = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+
+    // Fetch all metrics in parallel
+    const [
+        { count: totalEmployees },
+        { count: presentToday },
+        { count: openLeaves },
+    ] = await Promise.all([
+        // Total active employees in this tenant
+        adminSupabase
+            .from("employees")
+            .select("id", { count: "exact", head: true })
+            .eq("tenant_id", tenantId)
+            .eq("status", "active"),
+
+        // Present today: attendance_logs with today's date for this tenant's employees
+        adminSupabase
+            .from("attendance_logs")
+            .select("id", { count: "exact", head: true })
+            .eq("tenant_id", tenantId)
+            .eq("date", todayDate),
+
+        // Open (pending) leave requests for this tenant
+        adminSupabase
+            .from("leave_requests")
+            .select("id", { count: "exact", head: true })
+            .eq("tenant_id", tenantId)
+            .eq("status", "pending"),
+    ]);
+
     const STATS = [
         {
             label: "Total Employees",
-            value: "0",
+            value: String(totalEmployees ?? 0),
             icon: Users,
             color: "bg-blue-50 text-blue-600",
         },
         {
             label: "Present Today",
-            value: "0",
+            value: String(presentToday ?? 0),
             icon: CalendarDays,
             color: "bg-green-50 text-green-600",
         },
         {
             label: "Open Leaves",
-            value: "0",
+            value: String(openLeaves ?? 0),
             icon: TrendingUp,
             color: "bg-yellow-50 text-yellow-600",
         },
@@ -101,7 +135,7 @@ export default async function DashboardPage() {
                                 { label: "Add Employee", href: "/dashboard/employees/new" },
                                 { label: "View Directory", href: "/dashboard/employees" },
                                 { label: "Attendance Logs", href: "/dashboard/attendance" },
-                                { label: "System Settings", href: "/dashboard/settings" },
+                                { label: "Leave Requests", href: "/dashboard/leaves" },
                             ].map((action) => (
                                 <a
                                     key={action.label}
@@ -113,34 +147,38 @@ export default async function DashboardPage() {
                             ))}
                         </div>
                     </div>
+
+                    {/* Leave Tracker Widget */}
+                    <LeaveTracker />
                 </div>
 
-                <div className="lg:col-span-1">
+                <div className="lg:col-span-1 space-y-8">
                     <AttendanceWidget />
                 </div>
             </div>
 
-            {/* Coming Soon Modules */}
+            {/* Modules Grid */}
             <div className="bg-white rounded-xl border border-zinc-200 p-6">
                 <h2 className="text-base font-semibold text-zinc-900 mb-4">
                     Modules
                 </h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {[
-                        { label: "👥 Employees", status: "Active" },
-                        { label: "📅 Attendance", status: "Active" },
-                        { label: "🏖️ Leave Management", status: "Coming Soon" },
-                        { label: "💰 Payroll", status: "Coming Soon" },
-                        { label: "🛡️ Roles & Access", status: "Coming Soon" },
-                        { label: "⚙️ Settings", status: "Coming Soon" },
+                        { label: "👥 Employees", status: "Active", href: "/dashboard/employees" },
+                        { label: "📅 Attendance", status: "Active", href: "/dashboard/attendance" },
+                        { label: "🏖️ Leave Management", status: "Active", href: "/dashboard/leaves" },
+                        { label: "💰 Payroll", status: "Coming Soon", href: "#" },
+                        { label: "🛡️ Roles & Access", status: "Coming Soon", href: "#" },
+                        { label: "⚙️ Settings", status: "Coming Soon", href: "/dashboard/settings" },
                     ].map((mod) => (
-                        <div
+                        <a
                             key={mod.label}
-                            className={`px-4 py-3 rounded-lg border ${mod.status === 'Active' ? 'bg-zinc-50 border-zinc-200' : 'bg-zinc-50/50 border-zinc-100 opacity-60'}`}
+                            href={mod.href}
+                            className={`px-4 py-3 rounded-lg border transition-all ${mod.status === 'Active' ? 'bg-zinc-50 border-zinc-200 hover:border-primary/50' : 'bg-zinc-50/50 border-zinc-100 opacity-60 cursor-not-allowed'}`}
                         >
                             <p className="text-sm font-medium text-zinc-700">{mod.label}</p>
                             <p className="text-xs text-zinc-400 mt-0.5">{mod.status}</p>
-                        </div>
+                        </a>
                     ))}
                 </div>
             </div>
