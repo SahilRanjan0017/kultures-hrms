@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { logActivity, createNotification } from '@/lib/activity';
 
 export async function POST(request: NextRequest) {
     try {
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
         // Get profile for tenant_id
         const { data: profile } = await adminSupabase
             .from('employees')
-            .select('tenant_id, manager_id')
+            .select('id, tenant_id, manager_id')
             .eq('user_id', user.id)
             .single();
 
@@ -79,6 +80,36 @@ export async function POST(request: NextRequest) {
             .from('leave_balances')
             .update({ pending_days: Number(balance.pending_days) + daysCount })
             .eq('id', balance.id);
+
+        // Log activity
+        await logActivity({
+            tenantId: profile.tenant_id,
+            actorId: user.id,
+            action: 'LEAVE_APPLY',
+            targetType: 'leave',
+            targetId: leaveRequest.id,
+            metadata: { daysCount, start_date, end_date }
+        });
+
+        // Notify Manager
+        if (profile.manager_id) {
+            const { data: manager } = await adminSupabase
+                .from('employees')
+                .select('user_id')
+                .eq('id', profile.manager_id)
+                .single();
+
+            if (manager?.user_id) {
+                await createNotification({
+                    tenantId: profile.tenant_id,
+                    userId: manager.user_id,
+                    title: 'New Leave Request',
+                    message: `${user.user_metadata?.full_name || 'An employee'} has applied for ${daysCount} days of leave.`,
+                    type: 'info',
+                    link: '/dashboard/leaves/pending'
+                });
+            }
+        }
 
         return NextResponse.json({ success: true, request: leaveRequest });
 

@@ -1,26 +1,50 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+"use client";
+
+import { createClient } from "@/lib/supabase/client";
+import { redirect, usePathname } from "next/navigation";
 import Sidebar from "@/components/dashboard/Sidebar";
 import { RoleProvider } from "@/lib/role-context";
 import { type Role } from "@/lib/permissions";
+import NotificationBell from "@/components/dashboard/NotificationBell";
+import { useEffect, useState } from "react";
 
-export default async function DashboardLayout({
+export default function DashboardLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    const supabase = await createClient();
+    const pathname = usePathname();
+    const [user, setUser] = useState<any>(null);
+    const [membership, setMembership] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) redirect("/auth/login");
+    useEffect(() => {
+        async function load() {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                window.location.href = "/auth/login";
+                return;
+            }
+            setUser(user);
 
-    const { data: membership } = await supabase
-        .from("tenant_members")
-        .select("role, tenant_id, tenants(id, name)")
-        .eq("user_id", user.id)
-        .single();
+            const { data: membership } = await supabase
+                .from("tenant_members")
+                .select("role, tenant_id, tenants(id, name)")
+                .eq("user_id", user.id)
+                .single();
 
-    if (!membership || !membership.tenant_id) redirect("/onboarding");
+            if (!membership || !membership.tenant_id) {
+                window.location.href = "/onboarding";
+                return;
+            }
+            setMembership(membership);
+            setLoading(false);
+        }
+        load();
+    }, []);
+
+    if (loading) return <div className="h-screen flex items-center justify-center font-medium animate-pulse text-zinc-400">Loading Dashboard...</div>;
 
     const tenant = Array.isArray(membership.tenants)
         ? membership.tenants[0]
@@ -35,6 +59,22 @@ export default async function DashboardLayout({
                     userRole={membership.role}
                 />
                 <main className="flex-1 overflow-y-auto">
+                    {/* Dashboard Top Header */}
+                    <header className="h-16 border-b border-zinc-200 bg-white flex items-center justify-between px-8 shrink-0">
+                        <div className="flex items-center gap-4">
+                            <h1 className="text-sm font-semibold text-zinc-500 capitalize">{pathname.split('/').pop() || 'Dashboard'}</h1>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <NotificationBell />
+                            <div className="w-px h-6 bg-zinc-200 mx-1" />
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-xs font-bold text-zinc-600 border border-zinc-200 uppercase">
+                                    {user.email?.[0]}
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
                     <div className="p-8">
                         {children}
                     </div>

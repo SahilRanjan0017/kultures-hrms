@@ -69,13 +69,29 @@ export default function EditEmployeePage() {
             const res = await fetch(`/api/employees/${id}`);
             const data = await res.json();
             if (data.employee) {
+                const e = data.employee;
                 setFormData({
-                    ...data.employee,
-                    date_of_joining: data.employee.date_of_joining
-                        ? new Date(data.employee.date_of_joining).toISOString().split('T')[0]
+                    full_name: e.full_name ?? '',
+                    email: e.email ?? '',
+                    emp_code: e.emp_code ?? '',
+                    department: e.department ?? '',
+                    designation: e.designation ?? '',
+                    phone: e.phone ?? '',
+                    role: e.role ?? 'employee',
+                    date_of_joining: e.date_of_joining
+                        ? new Date(e.date_of_joining).toISOString().split('T')[0]
                         : '',
-                    address: data.employee.address || { street: '', city: '', state: '', pincode: '' },
-                    emergency_contact: data.employee.emergency_contact || { name: '', phone: '', relation: '' }
+                    address: {
+                        street: e.address?.street ?? '',
+                        city: e.address?.city ?? '',
+                        state: e.address?.state ?? '',
+                        pincode: e.address?.pincode ?? '',
+                    },
+                    emergency_contact: {
+                        name: e.emergency_contact?.name ?? '',
+                        phone: e.emergency_contact?.phone ?? '',
+                        relation: e.emergency_contact?.relation ?? '',
+                    },
                 });
             }
         } catch (error) {

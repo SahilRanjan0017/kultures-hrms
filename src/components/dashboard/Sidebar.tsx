@@ -12,6 +12,8 @@ import {
     Building2,
     ShieldCheck,
     UserPlus,
+    Bell,
+    History,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { hasPermission } from "@/lib/permissions";
@@ -59,6 +61,18 @@ const ALL_NAV_ITEMS: {
             href: "/dashboard/roles",
             icon: ShieldCheck,
             permission: "roles:manage",
+        },
+        {
+            label: "Activity",
+            href: "/dashboard/activity",
+            icon: History,
+            permission: "settings:manage", // Admin/HR
+        },
+        {
+            label: "Notifications",
+            href: "/dashboard/notifications",
+            icon: Bell,
+            permission: null,
         },
         {
             label: "Settings",

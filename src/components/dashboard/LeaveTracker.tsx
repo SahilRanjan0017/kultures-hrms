@@ -26,6 +26,10 @@ export default function LeaveTracker() {
 
     useEffect(() => {
         fetchBalances();
+
+        const handleApplied = () => fetchBalances();
+        window.addEventListener('leave-applied', handleApplied);
+        return () => window.removeEventListener('leave-applied', handleApplied);
     }, []);
 
     const fetchBalances = async () => {
@@ -52,71 +56,78 @@ export default function LeaveTracker() {
 
     return (
         <Card className="shadow-sm border-zinc-200">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 px-8 pt-8">
                 <div>
-                    <CardTitle className="text-xl font-bold text-zinc-900">My Leave Tracker</CardTitle>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <CardTitle className="text-xl font-bold text-zinc-900 font-inter tracking-tight">My Leave Tracker</CardTitle>
+                    <p className="text-xs text-zinc-400 mt-1 font-medium">
                         01-Jan-{new Date().getFullYear()} to 31-Dec-{new Date().getFullYear()}
                     </p>
                 </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-8 pb-8">
                 <Tabs defaultValue="details" className="w-full">
-                    <TabsList className="bg-transparent h-auto p-0 mb-6 gap-6 border-b border-zinc-100 w-full justify-start rounded-none">
+                    <TabsList className="bg-transparent h-auto p-0 mb-8 flex gap-8 border-b border-zinc-50 w-full justify-start rounded-none">
                         <TabsTrigger
                             value="details"
-                            className="data-[state=active]:bg-zinc-100 data-[state=active]:text-primary px-4 py-2 rounded-md text-sm font-medium transition-all"
+                            className="relative px-0 py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary text-sm font-bold text-zinc-400 transition-all hover:text-zinc-600"
                         >
                             Leave Details
                         </TabsTrigger>
-                        <TabsTrigger value="special" className="text-zinc-500 px-4 py-2 hover:text-zinc-900">Special Leave</TabsTrigger>
-                        <TabsTrigger value="wfh" className="text-zinc-500 px-4 py-2 hover:text-zinc-900">OPH/WFH Details</TabsTrigger>
-                        <TabsTrigger value="coff" className="text-zinc-500 px-4 py-2 hover:text-zinc-900">COFF</TabsTrigger>
+                        <TabsTrigger value="special" className="px-0 py-4 text-sm font-bold text-zinc-400 hover:text-zinc-600">Special Leave</TabsTrigger>
+                        <TabsTrigger value="wfh" className="px-0 py-4 text-sm font-bold text-zinc-400 hover:text-zinc-600">OPH/WFH Details</TabsTrigger>
+                        <TabsTrigger value="coff" className="px-0 py-4 text-sm font-bold text-zinc-400 hover:text-zinc-600">COFF</TabsTrigger>
                     </TabsList>
 
-                    <div className="space-y-6">
+                    <div className="space-y-0">
                         {balances.map((balance) => (
-                            <div key={balance.id} className="flex items-center gap-6 py-1">
+                            <div key={balance.id} className="group relative flex items-center gap-8 py-5 border-b border-zinc-50 hover:bg-zinc-50/30 transition-colors px-2 -mx-2 rounded-xl">
+                                {/* Vertical Color Strip */}
                                 <div
-                                    className="w-1 self-stretch rounded-full"
+                                    className="w-1.5 h-10 rounded-full"
                                     style={{ backgroundColor: balance.leave_type.color }}
                                 />
-                                <div className="flex-1 grid grid-cols-4 items-center gap-4">
-                                    {/* Type */}
-                                    <div>
-                                        <p className="text-sm font-medium text-zinc-500">{balance.leave_type.name}</p>
-                                        <p className="text-sm font-bold tracking-tight">
+
+                                <div className="flex-1 grid grid-cols-4 items-center gap-8">
+                                    {/* Type Label */}
+                                    <div className="min-w-[140px]">
+                                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">{balance.leave_type.name}</p>
+                                        <p className="text-sm font-bold text-zinc-900 font-inter">
                                             {balance.leave_type.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                                         </p>
                                     </div>
 
-                                    {/* Opening */}
-                                    <div>
-                                        <p className="text-xs text-zinc-400 mb-0.5">Opening</p>
+                                    {/* Stats */}
+                                    <div className="text-left">
+                                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Opening</p>
                                         <p className="text-sm font-bold text-zinc-700">{balance.total_days.toFixed(2)}</p>
                                     </div>
 
-                                    {/* Utilized */}
-                                    <div>
-                                        <p className="text-xs text-zinc-400 mb-0.5">Leave utilized</p>
+                                    <div className="text-left">
+                                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Leave utilized</p>
                                         <p className="text-sm font-bold text-zinc-700">{balance.used_days.toFixed(2)}</p>
                                     </div>
 
-                                    {/* Balance */}
-                                    <div>
-                                        <p className="text-xs text-zinc-400 mb-0.5">Balance</p>
-                                        <p className="text-sm font-bold text-zinc-700">{balance.available_days.toFixed(2)}</p>
+                                    <div className="text-left">
+                                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Balance</p>
+                                        <p className="text-sm font-bold text-zinc-900">{balance.available_days.toFixed(2)}</p>
                                     </div>
                                 </div>
-                                <Link href="/dashboard/leaves/apply">
-                                    <span className="text-sm font-bold text-primary hover:underline cursor-pointer">Apply</span>
+
+                                <Link href="/dashboard/leaves/apply" className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <span className="text-xs font-bold text-primary hover:underline underline-offset-4 decoration-primary/30 uppercase tracking-widest">
+                                        Apply
+                                    </span>
                                 </Link>
                             </div>
                         ))}
 
                         {balances.length === 0 && (
-                            <div className="text-center py-8 text-muted-foreground italic text-sm">
-                                No leave balances found for {new Date().getFullYear()}.
+                            <div className="flex flex-col items-center justify-center py-20 text-center">
+                                <div className="w-16 h-16 bg-zinc-50 rounded-full flex items-center justify-center mb-4">
+                                    <Plus className="w-6 h-6 text-zinc-200" />
+                                </div>
+                                <p className="text-sm font-bold text-zinc-400">No leave categories active</p>
+                                <p className="text-xs text-zinc-300 mt-1">Contact HR to assign leave policies.</p>
                             </div>
                         )}
                     </div>

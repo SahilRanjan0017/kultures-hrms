@@ -39,6 +39,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
         "attendance:own",
         "payroll:view",
         "payroll:own",
+        "roles:manage",
     ],
     manager: [
         "team:view",

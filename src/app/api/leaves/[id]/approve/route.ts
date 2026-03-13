@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { logActivity, createNotification } from '@/lib/activity';
 
 export async function POST(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id } = await params;
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -24,7 +26,7 @@ export async function POST(
                 employee:employee_id(full_name, user_id),
                 leave_type:leave_type_id(*)
             `)
-            .eq('id', params.id)
+            .eq('id', id)
             .single();
 
         if (fetchError || !leaveRequest) {
@@ -66,7 +68,7 @@ export async function POST(
         const { error: updateError } = await adminSupabase
             .from('leave_requests')
             .update(updateData)
-            .eq('id', params.id);
+            .eq('id', id);
 
         if (updateError) throw updateError;
 
@@ -87,6 +89,28 @@ export async function POST(
                     pending_days: Number(balance.pending_days) - Number(leaveRequest.days_count),
                 })
                 .eq('id', balance.id);
+        }
+
+        // Log activity
+        await logActivity({
+            tenantId: leaveRequest.tenant_id,
+            actorId: user.id,
+            action: action === 'approve' ? 'LEAVE_APPROVE' : 'LEAVE_REJECT',
+            targetType: 'leave',
+            targetId: id,
+            metadata: { employee_id: leaveRequest.employee_id, action }
+        });
+
+        // Notify Employee
+        if (leaveRequest.employee?.user_id) {
+            await createNotification({
+                tenantId: leaveRequest.tenant_id,
+                userId: leaveRequest.employee.user_id,
+                title: action === 'approve' ? 'Leave Approved ✅' : 'Leave Rejected ❌',
+                message: `Your leave request for ${leaveRequest.days_count} days has been ${action === 'approve' ? 'approved' : 'rejected'}.`,
+                type: action === 'approve' ? 'success' : 'error',
+                link: '/dashboard/leaves'
+            });
         }
 
         return NextResponse.json({ success: true });

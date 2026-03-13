@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email";
+import { logActivity } from "@/lib/activity";
 
 // Generate EMP code like EMP-001, EMP-002
 async function generateEmpCode(tenantId: string, adminSupabase: ReturnType<typeof createAdminClient>): Promise<string> {
@@ -180,6 +181,16 @@ export async function POST(request: NextRequest) {
                 });
 
                 results.push({ email, success: true, empCode });
+
+                // Log activity
+                await logActivity({
+                    tenantId: inviter.tenant_id,
+                    actorId: user.id,
+                    action: 'EMPLOYEE_CREATE',
+                    targetType: 'employee',
+                    targetId: employeeData.id,
+                    metadata: { email, role, full_name, invited: true }
+                });
 
             } catch (innerErr: any) {
                 results.push({ email: emp.email, success: false, error: innerErr.message });
