@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminSupabase } from "@/lib/supabase/admin";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
         }
 
         // 1. Get requester profile
+        const adminSupabase = createAdminClient();
         const { data: profile, error: profError } = await adminSupabase
             .from("employees")
             .select("id, tenant_id, role")

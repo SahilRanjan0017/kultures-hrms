@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminSupabase } from "@/lib/supabase/admin";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
@@ -12,6 +12,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 1. Get employee and tenant info
+        const adminSupabase = createAdminClient();
         const { data: employee, error: empError } = await adminSupabase
             .from("employees")
             .select("id, tenant_id")
