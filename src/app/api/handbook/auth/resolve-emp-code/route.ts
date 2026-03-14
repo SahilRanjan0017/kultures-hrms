@@ -14,12 +14,33 @@ export async function POST(request: NextRequest) {
 
         const adminSupabase = createAdminClient();
 
+        // Extract the host/subdomain to resolve the tenant
+        const host = request.headers.get("host") || "";
+        const subdomain = host.split(".")[0];
+
+        let tenantId = null;
+        if (subdomain && subdomain !== "localhost" && subdomain !== "kultures") {
+            const { data: tenant } = await adminSupabase
+                .from("tenants")
+                .select("id")
+                .eq("slug", subdomain)
+                .single();
+            if (tenant) {
+                tenantId = tenant.id;
+            }
+        }
+
         // Find member by emp_code returning user_id from employees table
-        const { data: member, error } = await adminSupabase
+        let query = adminSupabase
             .from("employees")
             .select("tenant_id, email, full_name, user_id")
-            .eq("emp_code", empCode.toUpperCase())
-            .single();
+            .eq("emp_code", empCode.toUpperCase());
+
+        if (tenantId) {
+            query = query.eq("tenant_id", tenantId);
+        }
+
+        const { data: member, error } = await query.single();
 
         if (error || !member) {
             return NextResponse.json(

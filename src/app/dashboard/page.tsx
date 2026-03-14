@@ -14,6 +14,8 @@ import EmployeeHeader from "@/components/dashboard/EmployeeHeader";
 import DashboardSideCalendar from "@/components/dashboard/DashboardSideCalendar";
 import HolidayList from "@/components/dashboard/HolidayList";
 import QuickLinkCard from "@/components/dashboard/QuickLinkCard";
+import DashboardStatusHeader from "@/components/dashboard/DashboardStatusHeader";
+import DashboardServiceCards from "@/components/dashboard/DashboardServiceCards";
 
 export default async function DashboardPage() {
     const supabase = await createClient();
@@ -148,17 +150,17 @@ export default async function DashboardPage() {
 
     return (
         <div className="space-y-8 max-w-[1600px] mx-auto">
+            {/* Status Header (Clock & Attendance) */}
+            <DashboardStatusHeader />
+
             {/* Header with Breadcrumbs/Search if needed elsewhere, but for now matching the image */}
             <EmployeeHeader employee={headerData} />
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Main Content Areas */}
                 <div className="lg:col-span-8 space-y-8">
-                    {/* Organogram & Handbook Row */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <QuickLinkCard type="organogram" />
-                        <QuickLinkCard type="handbook" />
-                    </div>
+                    {/* Vertical stack of Payslip, Letters, and Performance cards */}
+                    <DashboardServiceCards />
 
                     {/* Leave Tracker */}
                     <LeaveTracker />
@@ -171,9 +173,6 @@ export default async function DashboardPage() {
 
                     {/* Holiday List */}
                     <HolidayList />
-
-                    {/* Attendance Widget (Kept for functionality) */}
-                    <AttendanceWidget />
                 </div>
             </div>
         </div>

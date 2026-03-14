@@ -12,12 +12,33 @@ export async function POST(request: NextRequest) {
 
         const adminSupabase = createAdminClient();
 
+        // Extract the host/subdomain to resolve the tenant
+        const host = request.headers.get("host") || "";
+        const subdomain = host.split(".")[0];
+
+        let tenantId = null;
+        if (subdomain && subdomain !== "localhost" && subdomain !== "kultures") {
+            const { data: tenant } = await adminSupabase
+                .from("tenants")
+                .select("id")
+                .eq("slug", subdomain)
+                .single();
+            if (tenant) {
+                tenantId = tenant.id;
+            }
+        }
+
         // 1. Find the employee and their email
-        const { data: employee, error: empError } = await adminSupabase
+        let query = adminSupabase
             .from("employees")
             .select("user_id, email, full_name, tenants(name)")
-            .eq("emp_code", empCode)
-            .single();
+            .eq("emp_code", empCode.toUpperCase());
+
+        if (tenantId) {
+            query = query.eq("tenant_id", tenantId);
+        }
+
+        const { data: employee, error: empError } = await query.single();
 
         if (empError || !employee) {
             return NextResponse.json({ error: "Invalid Employee Code" }, { status: 404 });

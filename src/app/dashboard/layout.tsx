@@ -7,6 +7,7 @@ import { RoleProvider } from "@/lib/role-context";
 import { type Role } from "@/lib/permissions";
 import NotificationBell from "@/components/dashboard/NotificationBell";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 export default function DashboardLayout({
     children,
@@ -67,11 +68,11 @@ export default function DashboardLayout({
                         <div className="flex items-center gap-3">
                             <NotificationBell />
                             <div className="w-px h-6 bg-zinc-200 mx-1" />
-                            <div className="flex items-center gap-2">
+                            <Link href="/dashboard/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                                 <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-xs font-bold text-zinc-600 border border-zinc-200 uppercase">
                                     {user.email?.[0]}
                                 </div>
-                            </div>
+                            </Link>
                         </div>
                     </header>
 

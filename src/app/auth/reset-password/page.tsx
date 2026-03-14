@@ -28,7 +28,7 @@ export default function ResetPasswordPage() {
         setLoading(true);
         setError('');
         try {
-            const res = await fetch('/api/auth/reset-password/request-otp', {
+            const res = await fetch('/api/handbook/auth/reset-password/request-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ empCode: formData.empCode }),
@@ -60,7 +60,7 @@ export default function ResetPasswordPage() {
         setLoading(true);
         setError('');
         try {
-            const res = await fetch('/api/auth/reset-password/verify-reset', {
+            const res = await fetch('/api/handbook/auth/reset-password/verify-reset', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -83,55 +83,94 @@ export default function ResetPasswordPage() {
         }
     };
 
+    // Extracted Logo / Intro left side for consistency
+    const LeftBranding = () => (
+        <div className="hidden lg:flex w-1/2 bg-[#FFCA28] flex-col items-center justify-center p-12 relative overflow-hidden">
+            <div className="z-10 text-center space-y-4 flex flex-col items-center">
+                <div className="flex items-center gap-2 mb-4">
+                    <div className="relative w-24 h-24 mb-2">
+                        <div className="absolute inset-0 bg-white rounded-full shadow-lg"></div>
+                        <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-[#00B4D8] rounded-tr-full"></div>
+                        <div className="absolute top-1/2 right-0 w-1/2 h-1/2 bg-[#F4A261] rounded-br-full"></div>
+                        <div className="absolute bottom-4 left-4 w-6 h-6 bg-[#8CB369] rounded-full"></div>
+                        <div className="absolute top-1/4 left-1/3 w-4 h-4 bg-[#111] rounded-full"></div>
+                        <div className="absolute -left-12 top-4 w-12 h-4 bg-[#9D4EDD] rounded-l-full rotate-[-15deg]"></div>
+                        <div className="absolute -left-10 top-8 w-10 h-4 bg-[#E01E37] rounded-l-full rotate-[10deg]"></div>
+                    </div>
+                    <h1 className="text-6xl font-black text-zinc-900 tracking-tight flex items-baseline">
+                        Kulture
+                    </h1>
+                </div>
+                <p className="text-2xl font-medium text-zinc-900">
+                    Smart HR Tech for all businesses
+                </p>
+            </div>
+        </div>
+    );
+
     if (success) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-                <Card className="w-full max-w-md text-center py-8">
-                    <CardContent className="space-y-4">
-                        <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto" />
-                        <CardTitle className="text-2xl">Password Reset Successful</CardTitle>
-                        <CardDescription>
-                            Your password has been updated. Redirecting to login...
-                        </CardDescription>
-                        <Link href="/auth/login" className="w-full">
-                            <Button className="w-full mt-4">
-                                Go to Login
-                            </Button>
-                        </Link>
-                    </CardContent>
-                </Card>
+            <div className="flex min-h-screen bg-white">
+                <LeftBranding />
+                <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-20 xl:px-24 relative">
+                    <Card className="w-full max-w-sm text-center py-8 shadow-none border-none">
+                        <CardContent className="space-y-4">
+                            <CheckCircle2 className="w-16 h-16 text-[#14b8a6] mx-auto" />
+                            <CardTitle className="text-2xl font-bold text-zinc-900">Password Reset Successful</CardTitle>
+                            <CardDescription>
+                                Your password has been updated. Redirecting to login...
+                            </CardDescription>
+                            <Link href="/auth/login" className="w-full block">
+                                <Button className="w-full mt-4 bg-[#14b8a6] hover:bg-[#0f766e] text-white py-6">
+                                    Go to Login
+                                </Button>
+                            </Link>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-            <div className="w-full max-w-md space-y-4">
-                <Link href="/auth/login" className="flex items-center text-sm text-gray-500 hover:text-black transition-colors w-fit">
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Login
-                </Link>
+        <div className="flex min-h-screen bg-white">
+            <LeftBranding />
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Change Password</CardTitle>
-                        <CardDescription>
-                            {step === 'request'
-                                ? 'Enter your Employee Code to receive a 4-digit OTP via email.'
-                                : 'Enter the 4-digit code sent to your email and your new password.'}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
+            {/* Right Side: Form */}
+            <div className="flex-1 flex flex-col justify-center px-4 sm:px-6 lg:px-20 xl:px-24 relative">
+                <div className="mx-auto w-full max-w-sm">
+
+                    {/* Tenant Logo Placeholder */}
+                    <div className="mb-10 text-center flex flex-col items-center justify-center">
+                        <h2 className="text-3xl font-bold text-zinc-900">Brick & Bolt</h2>
+                        <p className="text-xs uppercase tracking-widest text-[#F4A261] font-bold mt-1">Home Construction</p>
+                    </div>
+
+                    <Link href="/auth/login" className="flex items-center text-sm text-zinc-500 hover:text-zinc-900 transition-colors w-fit mb-6">
+                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        Back to Login
+                    </Link>
+
+                    <div className="space-y-6">
+                        <div>
+                            <h3 className="text-2xl font-bold text-zinc-900">Change Password</h3>
+                            <p className="text-sm text-zinc-500 mt-2">
+                                {step === 'request'
+                                    ? 'Enter your Employee Code to receive a 4-digit OTP via email.'
+                                    : 'Enter the 4-digit code sent to your email along with your new password.'}
+                            </p>
+                        </div>
+
                         {error && (
-                            <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm mb-4 border border-red-100">
+                            <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm border border-red-100">
                                 {error}
                             </div>
                         )}
 
                         {step === 'request' ? (
                             <form onSubmit={handleRequestOTP} className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="empCode">Employee Code</Label>
+                                <div className="space-y-1">
+                                    <Label htmlFor="empCode" className="text-sm font-medium text-zinc-700">Employee Code</Label>
                                     <Input
                                         id="empCode"
                                         placeholder="EMP-001"
@@ -141,15 +180,15 @@ export default function ResetPasswordPage() {
                                         className="uppercase"
                                     />
                                 </div>
-                                <Button type="submit" className="w-full" disabled={loading}>
+                                <Button type="submit" className="w-full bg-[#14b8a6] hover:bg-[#0f766e] text-white py-6 text-sm font-medium mt-6" disabled={loading}>
                                     {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                                     Send OTP
                                 </Button>
                             </form>
                         ) : (
                             <form onSubmit={handleVerifyReset} className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="otp">OTP Code</Label>
+                                <div className="space-y-1">
+                                    <Label htmlFor="otp" className="text-sm font-medium text-zinc-700">OTP Code</Label>
                                     <Input
                                         id="otp"
                                         placeholder="4 digit number"
@@ -160,8 +199,8 @@ export default function ResetPasswordPage() {
                                         className="text-center tracking-widest text-lg font-bold"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="newPassword">New Password</Label>
+                                <div className="space-y-1">
+                                    <Label htmlFor="newPassword" className="text-sm font-medium text-zinc-700">New Password</Label>
                                     <Input
                                         id="newPassword"
                                         type="password"
@@ -171,8 +210,8 @@ export default function ResetPasswordPage() {
                                         onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="confirmPassword">Confirm Password</Label>
+                                <div className="space-y-1">
+                                    <Label htmlFor="confirmPassword" className="text-sm font-medium text-zinc-700">Confirm Password</Label>
                                     <Input
                                         id="confirmPassword"
                                         type="password"
@@ -182,23 +221,42 @@ export default function ResetPasswordPage() {
                                         onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                                     />
                                 </div>
-                                <Button type="submit" className="w-full" disabled={loading}>
-                                    {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                                    Update Password
-                                </Button>
+                                <div className="pt-2">
+                                    <Button type="submit" className="w-full bg-[#14b8a6] hover:bg-[#0f766e] text-white py-6 text-sm font-medium" disabled={loading}>
+                                        {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                        Update Password
+                                    </Button>
+                                </div>
                                 <Button
                                     type="button"
                                     variant="ghost"
-                                    className="w-full text-xs"
+                                    className="w-full text-xs text-zinc-500 hover:text-zinc-900"
                                     onClick={() => setStep('request')}
                                     disabled={loading}
                                 >
-                                    Resend OTP
+                                    Didn't receive an OTP? Resend
                                 </Button>
                             </form>
                         )}
-                    </CardContent>
-                </Card>
+
+                        <div className="mt-16 text-center">
+                            <p className="text-xs text-zinc-400 mb-2">Powered By</p>
+                            <div className="flex items-center justify-center gap-2 mb-2">
+                                <h1 className="text-xl font-black text-zinc-900 tracking-tight flex items-baseline">
+                                    Kulture
+                                </h1>
+                            </div>
+                            <p className="text-[10px] text-zinc-400 mb-6">© 2026 Kulture Private Limited</p>
+
+                            <div className="flex justify-center gap-6 text-xs text-[#14b8a6] font-medium">
+                                <Link href="/privacy">Privacy</Link>
+                                <Link href="/legal">Legal</Link>
+                                <Link href="/contact">Contact</Link>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
             </div>
         </div>
     );
