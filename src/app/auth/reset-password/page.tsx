@@ -141,9 +141,8 @@ export default function ResetPasswordPage() {
                 <div className="mx-auto w-full max-w-sm">
 
                     {/* Tenant Logo Placeholder */}
-                    <div className="mb-10 text-center flex flex-col items-center justify-center">
-                        <h2 className="text-3xl font-bold text-zinc-900">Brick & Bolt</h2>
-                        <p className="text-xs uppercase tracking-widest text-[#F4A261] font-bold mt-1">Home Construction</p>
+                    <div className="mb-10 animate-fade-in [animation-delay:200ms] flex flex-col items-center sm:items-start text-center sm:text-left">
+                        <h2 className="text-3xl font-bold text-zinc-900">Kulture</h2>
                     </div>
 
                     <Link href="/auth/login" className="flex items-center text-sm text-zinc-500 hover:text-zinc-900 transition-colors w-fit mb-6">

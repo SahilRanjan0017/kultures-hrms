@@ -114,10 +114,9 @@ function LoginContent() {
             <div className="flex-1 flex flex-col justify-center px-4 sm:px-6 lg:px-20 xl:px-24 bg-white relative">
                 <div className="mx-auto w-full max-w-sm">
 
-                    {/* Tenant Logo Placeholder (can be driven by DB later, showing Brick & Bolt as requested in visual) */}
-                    <div className="mb-10 text-center flex flex-col items-center justify-center">
-                        <h2 className="text-3xl font-bold text-zinc-900">Brick & Bolt</h2>
-                        <p className="text-xs uppercase tracking-widest text-orange-500 font-bold mt-1">Home Construction</p>
+                    {/* Tenant Logo Placeholder (can be driven by DB later) */}
+                    <div className="mb-10 animate-fade-in [animation-delay:200ms] flex flex-col items-center sm:items-start text-center sm:text-left">
+                        <h2 className="text-3xl font-bold text-zinc-900">Kulture</h2>
                     </div>
 
                     {/* ✅ OTP Expired Error from URL */}
