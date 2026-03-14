@@ -42,9 +42,10 @@ export async function GET(request: NextRequest) {
     const actualTokenHash = token_hash || (type === "email" ? code : null);
 
     if (actualTokenHash && type) {
+        // Cast type to EmailOtpType or MobileOtpType, Supabase expects specific strings here 
         const { error } = await supabase.auth.verifyOtp({
             token_hash: actualTokenHash,
-            type: type as "magiclink" | "email" | "recovery",
+            type: type as "magiclink" | "email" | "recovery" | "invite" | "signup",
         });
 
         if (error) {
