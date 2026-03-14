@@ -38,8 +38,9 @@ export async function GET(request: NextRequest) {
     let authSuccess = false;
 
     // Supabase email templates use {{ .TokenHash }} which often gets mapped to `code=` in the URL.
-    // So if we have `type=email` and `code` but no `token_hash`, the code IS the token_hash.
-    const actualTokenHash = token_hash || (type === "email" ? code : null);
+    // So if we have one of these types and `code` but no `token_hash`, the code IS the token_hash.
+    const otpTypes = ["email", "signup", "invite", "recovery", "magiclink"];
+    const actualTokenHash = token_hash || (otpTypes.includes(type || "") ? code : null);
 
     if (actualTokenHash && type) {
         // Cast type to EmailOtpType or MobileOtpType, Supabase expects specific strings here 
