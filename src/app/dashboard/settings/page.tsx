@@ -128,7 +128,7 @@ export default function GeneralSettingsPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-lg">
                             <div className="space-y-2">
                                 <Label>Industry</Label>
-                                <Select value={form.industry || ""} onValueChange={v => setForm({ ...form, industry: v })}>
+                                <Select value={form.industry || ""} onValueChange={v => setForm({ ...form, industry: v || "" })}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select Industry" />
                                     </SelectTrigger>
@@ -141,7 +141,7 @@ export default function GeneralSettingsPage() {
                             </div>
                             <div className="space-y-2">
                                 <Label>Company Size</Label>
-                                <Select value={form.size || ""} onValueChange={v => setForm({ ...form, size: v })}>
+                                <Select value={form.size || ""} onValueChange={v => setForm({ ...form, size: v || "" })}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select Size" />
                                     </SelectTrigger>

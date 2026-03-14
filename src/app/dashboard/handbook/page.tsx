@@ -165,12 +165,14 @@ export default function HandbookPage() {
 
                     {isAdmin && (
                         <Dialog>
-                            <DialogTrigger asChild>
-                                <Button className="shadow-lg shadow-primary/20">
-                                    <Plus className="w-4 h-4 mr-2" />
-                                    Add Policy
-                                </Button>
-                            </DialogTrigger>
+                            <DialogTrigger
+                                render={
+                                    <Button className="shadow-lg shadow-primary/20">
+                                        <Plus className="w-4 h-4 mr-2" />
+                                        Add Policy
+                                    </Button>
+                                }
+                            />
                             <DialogContent className="sm:max-w-[425px]">
                                 <DialogHeader>
                                     <DialogTitle>Upload Company Policy</DialogTitle>

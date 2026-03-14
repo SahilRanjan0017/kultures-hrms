@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Input } from "@/components/ui/input";
-import { Search, X, Loader2, ChevronUp, ChevronDown } from "lucide-react";
+import { Search, X, Loader2, ChevronUp, ChevronDown, User } from "lucide-react";
 import EmployeeJobCard from "@/components/dashboard/EmployeeJobCard";
 
 interface Employee {

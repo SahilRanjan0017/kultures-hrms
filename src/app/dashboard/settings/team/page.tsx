@@ -124,11 +124,13 @@ export default function TeamSettingsPage() {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={updatingId === emp.id}>
-                                                    {updatingId === emp.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <MoreVertical className="w-4 h-4" />}
-                                                </Button>
-                                            </DropdownMenuTrigger>
+                                            <DropdownMenuTrigger
+                                                render={
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8" disabled={updatingId === emp.id}>
+                                                        {updatingId === emp.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <MoreVertical className="w-4 h-4" />}
+                                                    </Button>
+                                                }
+                                            />
                                             <DropdownMenuContent align="end" className="w-48">
                                                 <DropdownMenuGroup>
                                                     <DropdownMenuLabel>Change Role</DropdownMenuLabel>
