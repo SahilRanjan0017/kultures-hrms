@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getAppUrl } from "@/lib/utils";
 
 export async function sendPasswordSetupEmail(formData: FormData) {
     const email = String(formData.get("email") || "").trim().toLowerCase();
@@ -9,7 +10,7 @@ export async function sendPasswordSetupEmail(formData: FormData) {
     const supabase = await createClient();
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/auth/set-password`,
+        redirectTo: `${getAppUrl()}/auth/callback?next=/auth/set-password`,
     });
 
     if (error) {

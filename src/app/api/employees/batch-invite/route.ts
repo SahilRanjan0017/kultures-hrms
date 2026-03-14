@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email";
 import { logActivity } from "@/lib/activity";
+import { getAppUrl } from "@/lib/utils";
 
 // Generate EMP code like EMP-001, EMP-002
 async function generateEmpCode(tenantId: string, adminSupabase: ReturnType<typeof createAdminClient>): Promise<string> {
@@ -162,7 +163,7 @@ export async function POST(request: NextRequest) {
                 });
 
                 // Send Email
-                const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/login`;
+                const loginUrl = `${getAppUrl()}/auth/login`;
                 await sendEmail({
                     to: email,
                     subject: `Welcome to ${tenantData?.name ?? "Kultures HRMS"}`,

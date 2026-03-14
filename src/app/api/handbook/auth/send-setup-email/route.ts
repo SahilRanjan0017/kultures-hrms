@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getAppUrl } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
     try {
@@ -15,12 +16,12 @@ export async function POST(request: NextRequest) {
         const supabase = await createClient();
 
         console.log("Sending password setup email to:", email);
-        console.log("Redirect URL:", `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/auth/set-password`);
+        console.log("Redirect URL:", `${getAppUrl()}/auth/callback?next=/auth/set-password`);
 
         const { error } = await supabase.auth.signInWithOtp({
             email,
             options: {
-                emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/auth/set-password`,
+                emailRedirectTo: `${getAppUrl()}/auth/callback?next=/auth/set-password`,
                 shouldCreateUser: true,
             },
         });

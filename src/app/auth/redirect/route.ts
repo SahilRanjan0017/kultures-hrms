@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getUserTenant } from '@/lib/tenant';
+import { getAppUrl } from "@/lib/utils";
 
 export async function GET(request: Request) {
     const tenantData = await getUserTenant();
 
     if (tenantData && tenantData.tenants && tenantData.tenants.subdomain) {
         const subdomain = tenantData.tenants.subdomain;
-        const isLocalhost = process.env.NEXT_PUBLIC_APP_URL?.includes('localhost');
+        const isLocalhost = getAppUrl().includes('localhost');
         const redirectUrl = isLocalhost
             ? `http://${subdomain}.localhost:3000`
             : `https://${subdomain}.kultures.io`;

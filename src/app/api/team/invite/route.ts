@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email";
+import { getAppUrl } from "@/lib/utils";
 
 // Generate EMP code like EMP-001, EMP-002
 async function generateEmpCode(tenantId: string, adminSupabase: ReturnType<typeof createAdminClient>): Promise<string> {
@@ -192,7 +193,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Send credentials email
-        const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/login`;
+        const loginUrl = `${getAppUrl()}/auth/login`;
 
         try {
             await sendEmail({
