@@ -4,10 +4,10 @@ import { sendEmail } from "@/lib/email";
 
 export async function POST(request: NextRequest) {
     try {
-        const { empCode } = await request.json();
+        const { identifier } = await request.json();
 
-        if (!empCode) {
-            return NextResponse.json({ error: "Employee Code is required" }, { status: 400 });
+        if (!identifier) {
+            return NextResponse.json({ error: "Employee Code or Email is required" }, { status: 400 });
         }
 
         const adminSupabase = createAdminClient();
@@ -28,11 +28,18 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // 1. Find the employee and their email
+        // 1. Find the employee and their email (check both emp_code and email)
+        const isEmail = identifier.includes("@");
+
         let query = adminSupabase
             .from("employees")
-            .select("user_id, email, full_name, tenants(name)")
-            .eq("emp_code", empCode.toUpperCase());
+            .select("user_id, email, full_name, tenants(name)");
+
+        if (isEmail) {
+            query = query.eq("email", identifier.toLowerCase());
+        } else {
+            query = query.eq("emp_code", identifier.toUpperCase());
+        }
 
         if (tenantId) {
             query = query.eq("tenant_id", tenantId);
@@ -41,8 +48,9 @@ export async function POST(request: NextRequest) {
         const { data: employee, error: empError } = await query.single();
 
         if (empError || !employee) {
-            return NextResponse.json({ error: "Invalid Employee Code" }, { status: 404 });
+            return NextResponse.json({ error: "Invalid Employee Code or Email" }, { status: 404 });
         }
+
 
         // 2. Generate 4-digit OTP
         const otp = Math.floor(1000 + Math.random() * 9000).toString();

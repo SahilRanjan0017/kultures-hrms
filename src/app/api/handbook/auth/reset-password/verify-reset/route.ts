@@ -3,24 +3,33 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: NextRequest) {
     try {
-        const { empCode, otp, newPassword } = await request.json();
+        const { identifier, otp, newPassword } = await request.json();
 
-        if (!empCode || !otp || !newPassword) {
+        if (!identifier || !otp || !newPassword) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
         const adminSupabase = createAdminClient();
 
-        // 1. Find the user ID from empCode
-        const { data: employee, error: empError } = await adminSupabase
+        // 1. Find the user ID from identifier (check both emp_code and email)
+        const isEmail = identifier.includes("@");
+
+        let query = adminSupabase
             .from("employees")
-            .select("user_id")
-            .eq("emp_code", empCode)
-            .single();
+            .select("user_id");
+
+        if (isEmail) {
+            query = query.eq("email", identifier.toLowerCase());
+        } else {
+            query = query.eq("emp_code", identifier.toUpperCase());
+        }
+
+        const { data: employee, error: empError } = await query.single();
 
         if (empError || !employee) {
-            return NextResponse.json({ error: "Invalid Employee Code" }, { status: 404 });
+            return NextResponse.json({ error: "Invalid Employee Code or Email" }, { status: 404 });
         }
+
 
         // 2. Verify OTP
         const { data: otpRecord, error: otpFetchError } = await adminSupabase

@@ -42,9 +42,12 @@ export async function logActivity({
                 ip_address: ipAddress
             });
 
-        if (error) console.error("→ Activity log error:", error.message);
+        if (error) {
+            console.error(`→ Activity log error [${action}]:`, error.message);
+            console.error("→ Log Details:", { tenantId, actorId, targetType, targetId });
+        }
     } catch (err) {
-        console.error("→ Failed to log activity:", err);
+        console.error("→ Failed to log activity unexpectedly:", err);
     }
 }
 

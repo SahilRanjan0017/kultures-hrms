@@ -34,7 +34,37 @@ export async function POST(request: NextRequest) {
 
         const adminSupabase = createAdminClient();
 
-        // ✅ Check if user already has a profile with tenant_id
+        // ✅ Step 0: Check if they are ALREADY an employee (pre-seeded)
+        const { data: existingEmployee } = await adminSupabase
+            .from("employees")
+            .select("tenant_id, id, role")
+            .eq("email", user.email)
+            .single();
+
+        if (existingEmployee?.tenant_id) {
+            console.log("→ Existing employee found during onboarding, linking to tenant:", existingEmployee.tenant_id);
+
+            await adminSupabase.from("profiles").upsert({
+                id: user.id,
+                tenant_id: existingEmployee.tenant_id,
+                employee_id: existingEmployee.id,
+                role: existingEmployee.role,
+                email: user.email,
+                is_first_login: false
+            });
+
+            await adminSupabase.from("tenant_members").upsert({
+                tenant_id: existingEmployee.tenant_id,
+                user_id: user.id,
+                employee_id: existingEmployee.id,
+                role: existingEmployee.role,
+                status: "active"
+            }, { onConflict: 'user_id, tenant_id' });
+
+            return NextResponse.json({ ok: true, tenantId: existingEmployee.tenant_id, linked: true });
+        }
+
+        // ✅ Step 0.1: Check if user already has a profile with tenant_id (redundant but safe)
         const { data: existingProfile } = await adminSupabase
             .from("profiles")
             .select("tenant_id")
@@ -42,12 +72,11 @@ export async function POST(request: NextRequest) {
             .single();
 
         if (existingProfile?.tenant_id) {
-            console.log("→ User already has tenant, skipping creation");
+            console.log("→ User already has tenant in profile, skipping creation");
             return NextResponse.json({ ok: true, alreadyExists: true });
         }
 
-        console.log("→ Creating tenant for user:", user.email);
-
+        console.log("→ Creating new tenant for user:", user.email);
         const slug = `${generateSlug(companyName)}-${Date.now()}`;
 
         // Step 1 — Create tenant
@@ -67,10 +96,10 @@ export async function POST(request: NextRequest) {
 
         const empCode = "EMP-001";
 
-        // Step 2 — ✅ Insert founder into employees
+        // Step 2 — ✅ Upsert founder into employees (use user_id as unique key)
         const { data: employeeData, error: employeeError } = await adminSupabase
             .from("employees")
-            .insert({
+            .upsert({
                 tenant_id: tenant.id,
                 full_name: user?.user_metadata?.full_name || user.email?.split("@")[0] || "Admin",
                 email: user.email,
@@ -78,18 +107,18 @@ export async function POST(request: NextRequest) {
                 role: "admin",
                 status: "active",
                 user_id: user.id
-            })
+            }, { onConflict: 'user_id' })
             .select("id")
             .single();
 
         if (employeeError) {
-            console.error("→ Employee insert error:", employeeError.message);
+            console.error("→ Employee upsert error:", employeeError.message);
         }
 
         const employeeId = employeeData?.id || null;
 
-        // Step 3 — ✅ Update profiles with tenant_id, role, and employee_id
-        const { error: profileError } = await adminSupabase
+        // Step 3 — ✅ Update profiles
+        await adminSupabase
             .from("profiles")
             .update({
                 tenant_id: tenant.id,
@@ -98,34 +127,20 @@ export async function POST(request: NextRequest) {
             })
             .eq("id", user.id);
 
-        if (profileError) {
-            console.error("→ Profile update error:", profileError.message);
-            return NextResponse.json(
-                { ok: false, message: profileError.message },
-                { status: 400 }
-            );
-        }
-
-        // Step 4 — ✅ Insert into tenant_members
-        const { error: memberError } = await adminSupabase
+        // Step 4 — ✅ Upsert into tenant_members
+        await adminSupabase
             .from("tenant_members")
-            .insert({
+            .upsert({
                 tenant_id: tenant.id,
                 user_id: user.id,
                 role: "admin",
                 employee_id: employeeId,
-            });
-
-        if (memberError) {
-            console.error("→ Member insert error:", memberError.message);
-            return NextResponse.json(
-                { ok: false, message: memberError.message },
-                { status: 400 }
-            );
-        }
+                status: "active"
+            }, { onConflict: 'user_id, tenant_id' });
 
         console.log("→ Tenant created and profile updated:", tenant.id);
         return NextResponse.json({ ok: true, tenantId: tenant.id });
+
 
     } catch (err) {
         console.error("→ Unexpected error:", err);

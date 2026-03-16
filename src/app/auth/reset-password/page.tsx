@@ -17,7 +17,7 @@ export default function ResetPasswordPage() {
     const [error, setError] = useState('');
 
     const [formData, setFormData] = useState({
-        empCode: '',
+        identifier: '',
         otp: '',
         newPassword: '',
         confirmPassword: ''
@@ -31,7 +31,7 @@ export default function ResetPasswordPage() {
             const res = await fetch('/api/handbook/auth/reset-password/request-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ empCode: formData.empCode }),
+                body: JSON.stringify({ identifier: formData.identifier }),
             });
             const data = await res.json();
             if (res.ok) {
@@ -64,7 +64,7 @@ export default function ResetPasswordPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    empCode: formData.empCode,
+                    identifier: formData.identifier,
                     otp: formData.otp,
                     newPassword: formData.newPassword
                 }),
@@ -88,16 +88,7 @@ export default function ResetPasswordPage() {
         <div className="hidden lg:flex w-1/2 bg-[#FFCA28] flex-col items-center justify-center p-12 relative overflow-hidden">
             <div className="z-10 text-center space-y-4 flex flex-col items-center">
                 <div className="flex items-center gap-2 mb-4">
-                    <div className="relative w-24 h-24 mb-2">
-                        <div className="absolute inset-0 bg-white rounded-full shadow-lg"></div>
-                        <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-[#00B4D8] rounded-tr-full"></div>
-                        <div className="absolute top-1/2 right-0 w-1/2 h-1/2 bg-[#F4A261] rounded-br-full"></div>
-                        <div className="absolute bottom-4 left-4 w-6 h-6 bg-[#8CB369] rounded-full"></div>
-                        <div className="absolute top-1/4 left-1/3 w-4 h-4 bg-[#111] rounded-full"></div>
-                        <div className="absolute -left-12 top-4 w-12 h-4 bg-[#9D4EDD] rounded-l-full rotate-[-15deg]"></div>
-                        <div className="absolute -left-10 top-8 w-10 h-4 bg-[#E01E37] rounded-l-full rotate-[10deg]"></div>
-                    </div>
-                    <h1 className="text-6xl font-black text-zinc-900 tracking-tight flex items-baseline">
+                    <h1 className="text-6xl font-black text-zinc-900 tracking-tight flex items-baseline animate-vibrate">
                         Kulture
                     </h1>
                 </div>
@@ -155,7 +146,7 @@ export default function ResetPasswordPage() {
                             <h3 className="text-2xl font-bold text-zinc-900">Change Password</h3>
                             <p className="text-sm text-zinc-500 mt-2">
                                 {step === 'request'
-                                    ? 'Enter your Employee Code to receive a 4-digit OTP via email.'
+                                    ? 'Enter your Employee Code or Email to receive a 4-digit OTP.'
                                     : 'Enter the 4-digit code sent to your email along with your new password.'}
                             </p>
                         </div>
@@ -169,14 +160,13 @@ export default function ResetPasswordPage() {
                         {step === 'request' ? (
                             <form onSubmit={handleRequestOTP} className="space-y-4">
                                 <div className="space-y-1">
-                                    <Label htmlFor="empCode" className="text-sm font-medium text-zinc-700">Employee Code</Label>
+                                    <Label htmlFor="identifier" className="text-sm font-medium text-zinc-700">Employee Code or Email</Label>
                                     <Input
-                                        id="empCode"
-                                        placeholder="EMP-001"
+                                        id="identifier"
+                                        placeholder="EMP-001 or you@company.com"
                                         required
-                                        value={formData.empCode}
-                                        onChange={(e) => setFormData({ ...formData, empCode: e.target.value })}
-                                        className="uppercase"
+                                        value={formData.identifier}
+                                        onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
                                     />
                                 </div>
                                 <Button type="submit" className="w-full bg-[#14b8a6] hover:bg-[#0f766e] text-white py-6 text-sm font-medium mt-6" disabled={loading}>
@@ -241,7 +231,7 @@ export default function ResetPasswordPage() {
                         <div className="mt-16 text-center">
                             <p className="text-xs text-zinc-400 mb-2">Powered By</p>
                             <div className="flex items-center justify-center gap-2 mb-2">
-                                <h1 className="text-xl font-black text-zinc-900 tracking-tight flex items-baseline">
+                                <h1 className="text-xl font-black text-zinc-900 tracking-tight flex items-baseline animate-vibrate">
                                     Kulture
                                 </h1>
                             </div>

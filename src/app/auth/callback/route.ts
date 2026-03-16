@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { syncUserSession } from "@/lib/auth-sync";
 
 export async function GET(request: NextRequest) {
     const requestUrl = new URL(request.url);
@@ -86,12 +87,15 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(new URL("/", requestUrl.origin));
     }
 
-    // ✅ Check profile for smart routing
-    const { data: profile } = await supabase
+    // ✅ Robust Server-Side Sync for existing employees
+    const syncProfile = await syncUserSession(user.id, user.email!, supabase);
+
+    // Fallback to existing profile check if sync didn't find an employee
+    const profile = syncProfile || (await supabase
         .from("profiles")
-        .select("tenant_id, is_first_login")
+        .select("tenant_id, is_first_login, role, employee_id")
         .eq("id", user.id)
-        .single();
+        .single()).data;
 
     if (profile?.is_first_login) {
         return NextResponse.redirect(new URL("/auth/set-password", requestUrl.origin));
@@ -102,4 +106,5 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.redirect(new URL(next, requestUrl.origin));
+
 }

@@ -127,3 +127,15 @@
     @apply font-sans;
   }
 }
+
+@keyframes vibrate {
+  0% { transform: translate(0); }
+  25% { transform: translate(-1px, 1px); }
+  50% { transform: translate(1px, -1px); }
+  75% { transform: translate(-1px, -1px); }
+  100% { transform: translate(1px, 1px); }
+}
+
+.animate-vibrate {
+  animation: vibrate 0.2s linear infinite;
+}

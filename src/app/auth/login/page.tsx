@@ -65,12 +65,19 @@ function LoginContent() {
             return;
         }
 
-        // ✅ Check profiles table (not tenant_members)
-        const { data: profile } = await supabase
+        // ✅ Robust API-based Sync
+        console.log("→ [CLIENT] Triggering /api/auth/sync");
+        const syncResponse = await fetch("/api/auth/sync", { method: "POST" });
+        const syncResult = await syncResponse.json();
+        console.log("→ [CLIENT] sync result:", syncResult);
+
+        // Use synced profile or fallback to client-side check
+        let profile = syncResult?.profile || (await supabase
             .from("profiles")
-            .select("tenant_id, is_first_login, role")
+            .select("tenant_id, is_first_login, role, employee_id")
             .eq("id", user.id)
-            .single();
+            .single()).data;
+
 
         // ✅ Route based on profile state
         if (profile?.is_first_login) {
@@ -80,6 +87,8 @@ function LoginContent() {
         } else {
             router.push("/dashboard");
         }
+
+
     }
 
     return (
@@ -88,19 +97,7 @@ function LoginContent() {
             <div className="hidden lg:flex w-1/2 bg-[#FFCA28] flex-col items-center justify-center p-12 relative overflow-hidden">
                 <div className="z-10 text-center space-y-4 flex flex-col items-center">
                     <div className="flex items-center gap-2 mb-4">
-                        {/* Custom parrot-like logo representation mapping to the visual */}
-                        <div className="relative w-24 h-24 mb-2">
-                            <div className="absolute inset-0 bg-white rounded-full shadow-lg"></div>
-                            {/* Abstract colorful shapes */}
-                            <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-[#00B4D8] rounded-tr-full"></div>
-                            <div className="absolute top-1/2 right-0 w-1/2 h-1/2 bg-[#F4A261] rounded-br-full"></div>
-                            <div className="absolute bottom-4 left-4 w-6 h-6 bg-[#8CB369] rounded-full"></div>
-                            <div className="absolute top-1/4 left-1/3 w-4 h-4 bg-[#111] rounded-full"></div>
-                            {/* Tail feathers */}
-                            <div className="absolute -left-12 top-4 w-12 h-4 bg-[#9D4EDD] rounded-l-full rotate-[-15deg]"></div>
-                            <div className="absolute -left-10 top-8 w-10 h-4 bg-[#E01E37] rounded-l-full rotate-[10deg]"></div>
-                        </div>
-                        <h1 className="text-6xl font-black text-zinc-900 tracking-tight flex items-baseline">
+                        <h1 className="text-6xl font-black text-zinc-900 tracking-tight flex items-baseline animate-vibrate">
                             Kulture
                         </h1>
                     </div>
@@ -213,11 +210,7 @@ function LoginContent() {
                             />
                         </div>
 
-                        <div className="flex justify-between items-center text-xs text-zinc-500 pt-6">
-                            <Link href="/auth/reset-password" className="hover:text-zinc-900 transition-colors">
-                                Forgot Password
-                            </Link>
-                        </div>
+
 
                         <div className="pt-2">
                             <Button
@@ -251,7 +244,7 @@ function LoginContent() {
                     <div className="mt-16 text-center">
                         <p className="text-xs text-zinc-400 mb-2">Powered By</p>
                         <div className="flex items-center justify-center gap-2 mb-2">
-                            <h1 className="text-xl font-black text-zinc-900 tracking-tight flex items-baseline">
+                            <h1 className="text-xl font-black text-zinc-900 tracking-tight flex items-baseline animate-vibrate">
                                 Kulture
                             </h1>
                         </div>
