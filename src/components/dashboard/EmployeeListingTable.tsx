@@ -65,15 +65,15 @@ export default function EmployeeListingTable({ employees, onSearch }: EmployeeLi
                                 <td className="px-4 py-6 text-xs font-bold text-zinc-500">{emp.designation || 'Staff'}</td>
                                 <td className="px-4 py-6 text-xs font-bold text-zinc-500">{emp.department || 'N/A'}</td>
                                 <td className="px-4 py-6 text-xs font-bold text-zinc-500">{emp.emp_code}</td>
-                                <td className="px-4 py-6 text-xs font-bold text-zinc-500">{emp.joining_date ? new Date(emp.joining_date).toLocaleDateString() : 'N/A'}</td>
+                                <td className="px-4 py-6 text-xs font-bold text-zinc-500">{emp.date_of_joining ? new Date(emp.date_of_joining).toLocaleDateString() : 'N/A'}</td>
                                 <td className="px-4 py-6">
                                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider ${emp.status === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                                            emp.status === 'onboarding' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
-                                                'bg-rose-50 text-rose-600 border border-rose-100'
+                                        emp.status === 'onboarding' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
+                                            'bg-rose-50 text-rose-600 border border-rose-100'
                                         }`}>
                                         <span className={`w-1.5 h-1.5 rounded-full ${emp.status === 'active' ? 'bg-emerald-500' :
-                                                emp.status === 'onboarding' ? 'bg-amber-500' :
-                                                    'bg-rose-500'
+                                            emp.status === 'onboarding' ? 'bg-amber-500' :
+                                                'bg-rose-500'
                                             }`} />
                                         {emp.status}
                                     </span>

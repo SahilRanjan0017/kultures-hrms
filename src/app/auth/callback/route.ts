@@ -13,6 +13,9 @@ export async function GET(request: NextRequest) {
     console.log("→ Callback hit, code:", code, "token_hash:", token_hash);
 
     const cookieStore = await cookies();
+    const host = request.headers.get("host") || "";
+    const isLocal = host.includes("localhost");
+    const cookieDomain = isLocal ? "localhost" : ".kultures.io";
 
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,7 +28,12 @@ export async function GET(request: NextRequest) {
                 setAll(cookiesToSet) {
                     try {
                         cookiesToSet.forEach(({ name, value, options }) => {
-                            cookieStore.set({ name, value, ...options });
+                            cookieStore.set({
+                                name,
+                                value,
+                                ...options,
+                                domain: cookieDomain // Allow cookies to work across subdomains
+                            });
                         });
                     } catch (error) {
                         // The `setAll` method was called from a Server Component.

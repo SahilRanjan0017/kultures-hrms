@@ -18,10 +18,12 @@ export type Employee = {
     designation: string | null;
     phone: string | null;
     date_of_joining: string | null;
-    status: "active" | "inactive" | "on leave";
+    status: "active" | "inactive" | "on leave" | "onboarding" | "invited";
     avatar_url: string | null;
     profile_photo_url: string | null;
     location: string | null;
+    created_at?: string;
+    updated_at?: string;
 };
 
 // ✅ SERVER — used in page.tsx (async server component)
