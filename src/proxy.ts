@@ -20,9 +20,26 @@ export async function proxy(request: NextRequest) {
         return response;
     }
 
-    const host = request.headers.get("host") || "";
-    const isLocal = host.includes("localhost");
-    const cookieDomain = isLocal ? "localhost" : ".kultures.io";
+    const { pathname, hostname } = request.nextUrl;
+    const isLocal = hostname.includes("localhost");
+    const isVercel = hostname.includes("vercel.app");
+    const parts = hostname.split(".");
+
+    // Determine cookie domain for cross-subdomain auth
+    let cookieDomain = isLocal ? "localhost" : ".kultures.io";
+
+    if (isVercel) {
+        // For Vercel, use the root project domain (3 parts: [project].vercel.app)
+        if (parts.length >= 3) {
+            cookieDomain = parts.slice(-3).join(".");
+        }
+    } else if (!isLocal) {
+        // For production custom domains (2 parts: kultures.io)
+        if (parts.length >= 2) {
+            // Check if it's already a tenant (3+ parts) or root (2 parts)
+            cookieDomain = "." + parts.slice(-2).join(".");
+        }
+    }
 
     // ✅ 3. INITIALIZE CLIENT SUPABASE
     const supabase = createServerClient(
@@ -50,19 +67,33 @@ export async function proxy(request: NextRequest) {
     );
 
     const { data: { user } } = await supabase.auth.getUser();
-    const { pathname } = request.nextUrl;
 
     // ✅ 4. SUBDOMAIN EXTRACTION & VALIDATION
-    const parts = host.split(".");
     let tenantSubdomain = "";
 
-    if (parts.length >= 3) {
-        tenantSubdomain = parts[0];
-    } else if (parts.length === 2 && isLocal) {
-        tenantSubdomain = parts[0];
+    if (isVercel) {
+        // Vercel apps: [tenant].kultures-hrms.vercel.app (4 parts)
+        // Main app: kultures-hrms.vercel.app (3 parts)
+        if (parts.length >= 4) {
+            tenantSubdomain = parts[0];
+        }
+    } else if (isLocal) {
+        // Local dev: [tenant].localhost (2 parts)
+        if (parts.length >= 2) {
+            tenantSubdomain = parts[0];
+        }
+    } else {
+        // Production: [tenant].kultures.io (3 parts)
+        if (parts.length >= 3) {
+            tenantSubdomain = parts[0];
+        }
     }
 
-    if (tenantSubdomain === "www" || tenantSubdomain === "localhost" || tenantSubdomain === "app") {
+    // Exclude special cases and base app name
+    if (tenantSubdomain === "www" ||
+        tenantSubdomain === "localhost" ||
+        tenantSubdomain === "app" ||
+        tenantSubdomain === "kultures-hrms") {
         tenantSubdomain = "";
     }
 
@@ -116,7 +147,6 @@ export async function proxy(request: NextRequest) {
         if (tenantId && profile?.tenant_id && profile.tenant_id !== tenantId) {
             console.error(`→ [AUTH] Tenant Mismatch: User belongs to ${profile.tenant_id} but tried accessing ${tenantId}`);
             // Redirect them to THEIR own dashboard
-            // Note: In prod you would resolve their subdomain from the tenant_id
             return NextResponse.rewrite(new URL("/404", request.url));
         }
     }
