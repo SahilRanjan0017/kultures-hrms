@@ -23,6 +23,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Employee record not found" }, { status: 404 });
         }
 
+        const { lat, lng } = await request.json().catch(() => ({}));
+
         const now = new Date();
         const today = now.toISOString().split('T')[0];
 
@@ -46,6 +48,8 @@ export async function POST(request: NextRequest) {
                 .from("attendance_logs")
                 .update({
                     clock_out: now.toISOString(),
+                    clock_out_lat: lat || null,
+                    clock_out_lng: lng || null,
                     total_hours: totalHours,
                     updated_at: now.toISOString()
                 })
@@ -63,8 +67,6 @@ export async function POST(request: NextRequest) {
             });
         } else {
             // CLOCK IN
-            // We only allow one clock-in per day for now, or multiple if we want history.
-            // Let's stick to simple: Create a new log entry.
             const { data: newLog, error: inError } = await adminSupabase
                 .from("attendance_logs")
                 .insert({
@@ -72,6 +74,8 @@ export async function POST(request: NextRequest) {
                     employee_id: employee.id,
                     date: today,
                     clock_in: now.toISOString(),
+                    clock_in_lat: lat || null,
+                    clock_in_lng: lng || null,
                     status: 'present'
                 })
                 .select()

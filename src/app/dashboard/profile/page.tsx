@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -36,7 +37,10 @@ import { FullEmployeeProfile } from "@/types/profile";
 
 export default function ProfilePage() {
     const supabase = createClient();
+    const router = useRouter();
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const [loading, setLoading] = useState(true);
+    const [uploading, setUploading] = useState(false);
     const [profile, setProfile] = useState<FullEmployeeProfile | null>(null);
 
     useEffect(() => {
@@ -55,6 +59,36 @@ export default function ProfilePage() {
             console.error('Error fetching profile:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploading(true);
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const res = await fetch("/api/profile/photo", {
+                method: "POST",
+                body: formData,
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Upload failed");
+
+            // Update local state
+            if (profile) {
+                setProfile({ ...profile, profile_photo_url: data.photoUrl });
+            }
+            router.refresh();
+        } catch (error: any) {
+            console.error('Error uploading photo:', error);
+            alert(`Failed to update profile photo: ${error.message}`);
+        } finally {
+            setUploading(false);
         }
     };
 
@@ -94,10 +128,25 @@ export default function ProfilePage() {
                             <CardContent className="p-0">
                                 <div className="flex flex-col items-center p-8 pt-12 pb-10">
                                     <div className="relative group">
+                                        <input
+                                            type="file"
+                                            ref={fileInputRef}
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={handlePhotoChange}
+                                        />
                                         <div className="w-44 h-44 rounded-3xl overflow-hidden border-8 border-white shadow-2xl bg-zinc-50 flex items-center justify-center">
-                                            <img src={profileData.photo} alt="Profile" className="w-full h-full object-cover" />
+                                            {uploading ? (
+                                                <Loader2 className="w-8 h-8 animate-spin text-zinc-300" />
+                                            ) : (
+                                                <img src={profileData.photo} alt="Profile" className="w-full h-full object-cover" />
+                                            )}
                                         </div>
-                                        <button className="absolute -bottom-2 -right-2 w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg hover:scale-105 transition-transform">
+                                        <button
+                                            onClick={() => fileInputRef.current?.click()}
+                                            disabled={uploading}
+                                            className="absolute -bottom-2 -right-2 w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
                                             <Camera className="w-5 h-5" />
                                         </button>
                                     </div>

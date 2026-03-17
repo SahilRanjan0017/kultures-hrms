@@ -7,15 +7,23 @@ import {
     DollarSign,
     TrendingUp,
     Clock,
+    Plus,
+    Download,
+    Filter
 } from "lucide-react";
 import AttendanceWidget from "@/components/dashboard/AttendanceWidget";
 import LeaveTracker from "@/components/dashboard/LeaveTracker";
 import EmployeeHeader from "@/components/dashboard/EmployeeHeader";
 import DashboardSideCalendar from "@/components/dashboard/DashboardSideCalendar";
 import HolidayList from "@/components/dashboard/HolidayList";
-import QuickLinkCard from "@/components/dashboard/QuickLinkCard";
 import DashboardStatusHeader from "@/components/dashboard/DashboardStatusHeader";
 import DashboardServiceCards from "@/components/dashboard/DashboardServiceCards";
+import StatsCard from "@/components/dashboard/StatsCard";
+import EmployeeTracker from "@/components/dashboard/EmployeeTracker";
+import UpcomingSchedule from "@/components/dashboard/UpcomingSchedule";
+import EmployeeStatusTable from "@/components/dashboard/EmployeeStatusTable";
+import Announcements from "@/components/dashboard/Announcements";
+import DashboardHeaderActions from "@/components/dashboard/DashboardHeaderActions";
 
 export default async function DashboardPage() {
     const supabase = await createClient();
@@ -35,10 +43,6 @@ export default async function DashboardPage() {
 
     if (!membershipRaw || !membershipRaw.tenant_id) redirect("/onboarding");
     const membershipData = membershipRaw;
-
-    const tenant = Array.isArray(membershipData.tenants)
-        ? membershipData.tenants[0]
-        : (membershipData.tenants as any);
 
     const tenantId = membershipData.tenant_id;
     const adminSupabase = createAdminClient();
@@ -68,66 +72,91 @@ export default async function DashboardPage() {
         .single();
 
     if (!isEmployeeOrManager) {
-        // --- Admin/HR View ---
+        // --- Admin/HR View (Dynamic Mode) ---
         const currentMonth = new Date().toISOString().slice(0, 7);
         const [
-            { count: totalEmployees },
+            { count: totalEmployeesCount },
             { count: presentToday },
             { count: openLeaves },
-            { count: totalLeavesMonth }
+            { count: totalLeavesMonth },
+            { data: recentEmployees }
         ] = await Promise.all([
             adminSupabase.from("employees").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "active"),
             adminSupabase.from("attendance_logs").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("date", todayDate),
             adminSupabase.from("leave_requests").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "pending"),
             adminSupabase.from("leave_requests").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).gte("start_date", `${currentMonth}-01`),
+            adminSupabase.from("employees").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: false }).limit(10)
         ]);
 
-        const STATS = [
-            { label: "Total Employees", value: String(totalEmployees ?? 0), icon: Users, color: "bg-blue-50 text-blue-600" },
-            { label: "Present Today", value: String(presentToday ?? 0), icon: CalendarDays, color: "bg-green-50 text-green-600" },
-            { label: "Pending Leaves", value: String(openLeaves ?? 0), icon: TrendingUp, color: "bg-yellow-50 text-yellow-600" },
-            { label: "Monthly Leaves", value: String(totalLeavesMonth ?? 0), icon: CalendarDays, color: "bg-purple-50 text-purple-600" },
-        ];
-
         return (
-            <div className="space-y-8 max-w-[1600px] mx-auto">
-                <div className="flex justify-between items-center">
-                    <div>
-                        <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">Admin Console</h1>
-                        <p className="text-zinc-500 mt-1 font-medium">{tenant.name} · {tenant.industry}</p>
-                    </div>
+            <div className="space-y-10">
+                <DashboardHeaderActions />
+
+                {/* Main Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <StatsCard
+                        label="Total Workforce"
+                        value={totalEmployeesCount ?? 0}
+                        iconType="users"
+                        color="blue"
+                        trend={{ value: 4.2, isPositive: true }}
+                        description="Active employee list"
+                    />
+                    <StatsCard
+                        label="Present Today"
+                        value={presentToday ?? 0}
+                        iconType="calendar"
+                        color="green"
+                        trend={{ value: 12, isPositive: true }}
+                        description="Attendance compliance"
+                    />
+                    <StatsCard
+                        label="Pending Requests"
+                        value={openLeaves ?? 0}
+                        iconType="trending"
+                        color="yellow"
+                        description="Leaves & approvals"
+                    />
+                    <StatsCard
+                        label="Monthly Leaves"
+                        value={totalLeavesMonth ?? 0}
+                        iconType="clock"
+                        color="purple"
+                        trend={{ value: 2.1, isPositive: false }}
+                        description="Leave frequency"
+                    />
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-2 space-y-8">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {STATS.map((stat) => (
-                                <div key={stat.label} className="bg-white rounded-2xl border border-zinc-100 p-6 flex items-center gap-5 shadow-sm hover:shadow-md transition-shadow">
-                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${stat.color} shadow-inner`}><stat.icon className="w-6 h-6" /></div>
-                                    <div>
-                                        <p className="text-2xl font-bold text-zinc-900 leading-none mb-1">{stat.value}</p>
-                                        <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest">{stat.label}</p>
-                                    </div>
-                                </div>
-                            ))}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    {/* Left & Middle Column (Main Content) */}
+                    <div className="lg:col-span-8 space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <EmployeeTracker total={totalEmployeesCount ?? 0} />
+                            <Announcements />
                         </div>
-                        <div className="bg-white rounded-2xl border border-zinc-100 p-8 shadow-sm">
-                            <h2 className="text-lg font-bold text-zinc-900 mb-6">Quick Actions</h2>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <EmployeeStatusTable employees={recentEmployees || []} />
+                    </div>
+
+                    {/* Right Column (Sidebar Content) */}
+                    <div className="lg:col-span-4 space-y-8">
+                        <UpcomingSchedule />
+                        <div className="bg-white rounded-[2rem] border border-zinc-100/50 p-8 shadow-sm flex flex-col gap-6">
+                            <h2 className="text-lg font-bold text-zinc-900 tracking-tight">Quick Resources</h2>
+                            <div className="grid grid-cols-1 gap-3">
                                 {[
-                                    { label: "Add Employee", href: "/dashboard/employees/new" },
-                                    { label: "Run Payroll", href: "/dashboard/payroll" },
-                                    { label: "Attendance", href: "/dashboard/attendance" },
-                                    { label: "Leaves", href: "/dashboard/leaves" },
-                                ].map((action) => (
-                                    <a key={action.label} href={action.href} className="flex flex-col items-center justify-center p-4 rounded-xl border border-zinc-50 bg-zinc-50/30 text-xs font-bold text-zinc-600 hover:bg-white hover:border-primary/20 hover:text-primary transition-all shadow-sm hover:shadow-md">{action.label}</a>
+                                    { label: "Company Policy", href: "#" },
+                                    { label: "Payroll Calendar", href: "#" },
+                                    { label: "Holiday List 2024", href: "#" },
+                                ].map((item) => (
+                                    <a key={item.label} href={item.href} className="flex items-center justify-between p-4 rounded-2xl bg-zinc-50 hover:bg-zinc-100/50 transition-all group">
+                                        <span className="text-xs font-bold text-zinc-600 group-hover:text-zinc-900">{item.label}</span>
+                                        <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-sm">
+                                            <Download className="w-3.5 h-3.5 text-zinc-400" />
+                                        </div>
+                                    </a>
                                 ))}
                             </div>
                         </div>
-                        <LeaveTracker />
-                    </div>
-                    <div className="lg:col-span-1 space-y-8">
-                        <AttendanceWidget />
                     </div>
                 </div>
             </div>

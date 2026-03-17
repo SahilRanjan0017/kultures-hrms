@@ -34,45 +34,15 @@ export async function POST(request: NextRequest) {
 
         const adminSupabase = createAdminClient();
 
-        // ✅ Step 0: Check if they are ALREADY an employee (pre-seeded)
-        const { data: existingEmployee } = await adminSupabase
-            .from("employees")
-            .select("tenant_id, id, role")
-            .eq("email", user.email)
-            .single();
-
-        if (existingEmployee?.tenant_id) {
-            console.log("→ Existing employee found during onboarding, linking to tenant:", existingEmployee.tenant_id);
-
-            await adminSupabase.from("profiles").upsert({
-                id: user.id,
-                tenant_id: existingEmployee.tenant_id,
-                employee_id: existingEmployee.id,
-                role: existingEmployee.role,
-                email: user.email,
-                is_first_login: false
-            });
-
-            await adminSupabase.from("tenant_members").upsert({
-                tenant_id: existingEmployee.tenant_id,
-                user_id: user.id,
-                employee_id: existingEmployee.id,
-                role: existingEmployee.role,
-                status: "active"
-            }, { onConflict: 'user_id, tenant_id' });
-
-            return NextResponse.json({ ok: true, tenantId: existingEmployee.tenant_id, linked: true });
-        }
-
-        // ✅ Step 0.1: Check if user already has a profile with tenant_id (redundant but safe)
+        // ✅ Step 0: Check if they are ALREADY an admin of a tenant
         const { data: existingProfile } = await adminSupabase
             .from("profiles")
-            .select("tenant_id")
+            .select("tenant_id, role")
             .eq("id", user.id)
             .single();
 
-        if (existingProfile?.tenant_id) {
-            console.log("→ User already has tenant in profile, skipping creation");
+        if (existingProfile?.tenant_id && existingProfile.role === 'admin') {
+            console.log("→ User is already an admin of a tenant, skipping creation");
             return NextResponse.json({ ok: true, alreadyExists: true });
         }
 

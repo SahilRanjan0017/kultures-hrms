@@ -19,21 +19,27 @@ export async function GET(request: NextRequest) {
 
         const adminSupabase = createAdminClient();
 
+        // Resolve active tenant and role from profiles table (source of truth for session)
         const { data: profile } = await adminSupabase
-            .from('employees')
+            .from('profiles')
             .select('tenant_id, role')
-            .eq('user_id', user.id)
+            .eq('id', user.id)
             .single();
 
         if (!profile?.tenant_id) {
-            return NextResponse.json({ error: 'Tenant missing' }, { status: 403 });
+            return NextResponse.json({ error: 'Tenant record missing in profile' }, { status: 403 });
         }
 
         const userRole = profile.role;
 
-        // If employee, they shouldn't see the directory at all (as per requirements)
+        // If employee, they should only see themselves
         if (userRole === 'employee') {
-            return NextResponse.json({ employees: [] });
+            const { data: myself, error: myError } = await adminSupabase
+                .from('employees')
+                .select('id, full_name, email, emp_code, role, department, designation, status, avatar_url')
+                .eq('user_id', user.id)
+                .single();
+            return NextResponse.json({ employees: myself ? [myself] : [] });
         }
 
         let query = adminSupabase
@@ -91,10 +97,11 @@ export async function POST(request: NextRequest) {
 
         const adminSupabase = createAdminClient();
 
+        // Resolve active tenant and role from profiles table
         const { data: profile } = await adminSupabase
-            .from('employees')
+            .from('profiles')
             .select('tenant_id, role')
-            .eq('user_id', user.id)
+            .eq('id', user.id)
             .single();
 
         if (!profile?.tenant_id || !['admin', 'hr', 'manager'].includes(profile.role)) {

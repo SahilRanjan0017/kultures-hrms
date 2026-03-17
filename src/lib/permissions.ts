@@ -11,6 +11,11 @@ export type Permission =
     | "payroll:view"
     | "payroll:manage"
     | "payroll:own"
+    | "leaves:view"
+    | "leaves:manage"
+    | "leaves:own"
+    | "calendar:view"
+    | "documents:view"
     | "roles:manage"
     | "settings:manage";
 
@@ -26,6 +31,11 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
         "payroll:view",
         "payroll:manage",
         "payroll:own",
+        "leaves:view",
+        "leaves:manage",
+        "leaves:own",
+        "calendar:view",
+        "documents:view",
         "roles:manage",
         "settings:manage",
     ],
@@ -39,6 +49,11 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
         "attendance:own",
         "payroll:view",
         "payroll:own",
+        "leaves:view",
+        "leaves:manage",
+        "leaves:own",
+        "calendar:view",
+        "documents:view",
         "roles:manage",
     ],
     manager: [
@@ -47,10 +62,16 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
         "attendance:view",
         "attendance:own",
         "payroll:own",
+        "leaves:own",
+        "calendar:view",
+        "documents:view",
     ],
     employee: [
         "attendance:own",
         "payroll:own",
+        "leaves:own",
+        "calendar:view",
+        "documents:view",
     ],
 };
 

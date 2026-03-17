@@ -4,6 +4,8 @@ import InviteForm from "@/components/dashboard/InviteForm";
 import RoleGuard from "@/components/dashboard/RoleGuard";
 import { type Role } from "@/lib/permissions";
 
+import TeamHeaderActions from "@/components/dashboard/TeamHeaderActions";
+
 export default async function TeamPage() {
     const supabase = await createClient();
 
@@ -36,12 +38,8 @@ export default async function TeamPage() {
 
     return (
         <RoleGuard role={membership.role as Role} permission="team:view">
-            <div className="space-y-8">
-
-                <div>
-                    <h1 className="text-2xl font-bold text-zinc-900">Team Members</h1>
-                    <p className="text-zinc-500 mt-1">Manage your team and their roles</p>
-                </div>
+            <div className="space-y-10 pb-12">
+                <TeamHeaderActions count={members?.length ?? 0} />
 
                 {/* Invite Form — admin/hr only */}
                 <RoleGuard
@@ -49,8 +47,8 @@ export default async function TeamPage() {
                     permission="team:invite"
                     fallback={null}
                 >
-                    <div className="bg-white rounded-xl border border-zinc-200 p-6">
-                        <h2 className="text-base font-semibold text-zinc-900 mb-4">
+                    <div className="bg-white rounded-[2rem] border border-zinc-100/50 p-8 shadow-sm">
+                        <h2 className="text-lg font-bold text-zinc-900 tracking-tight mb-6">
                             Invite New Member
                         </h2>
                         <InviteForm />
@@ -58,11 +56,14 @@ export default async function TeamPage() {
                 </RoleGuard>
 
                 {/* Members List */}
-                <div className="bg-white rounded-xl border border-zinc-200">
-                    <div className="px-6 py-4 border-b border-zinc-200">
-                        <h2 className="text-base font-semibold text-zinc-900">
-                            All Members ({members?.length ?? 0})
-                        </h2>
+                <div className="bg-white rounded-[2.5rem] border border-zinc-100/50 shadow-sm overflow-hidden">
+                    <div className="px-8 py-6 border-b border-zinc-50 flex items-center justify-between">
+                        <div>
+                            <h2 className="text-lg font-bold text-zinc-900 tracking-tight">
+                                Organization Members
+                            </h2>
+                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Directory of all users</p>
+                        </div>
                     </div>
 
                     <div className="divide-y divide-zinc-100">

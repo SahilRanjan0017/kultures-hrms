@@ -1,272 +1,167 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { useRole } from '@/lib/role-context';
 import {
-    Calendar,
-    Clock,
-    ArrowLeft,
     Search,
-    FileText,
-    Loader2,
-    Filter,
+    MoreHorizontal,
+    TrendingUp,
+    Users,
+    LayoutGrid,
     ArrowUpRight,
-    ArrowDownRight,
-    Clock3
+    Calendar,
+    Plus,
+    Loader2
 } from 'lucide-react';
-import { format } from 'date-fns';
-import Link from 'next/link';
-import AttendanceCalendar from '@/components/dashboard/AttendanceCalendar';
+import AttendanceGauge from "@/components/dashboard/AttendanceGauge";
+import PerformanceChart from "@/components/dashboard/PerformanceChart";
+import EmployeeOnLeaves from "@/components/dashboard/EmployeeOnLeaves";
+import EmployeeStatusTable from "@/components/dashboard/EmployeeStatusTable";
+import { useHeader } from "@/lib/header-context";
+import { type Employee } from '@/lib/employees';
 
 export default function AttendancePage() {
-    const role = useRole();
+    const { setTitle, setActions } = useHeader();
+    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [stats, setStats] = useState({ present: 0, total: 0, leaves: 0 });
     const [loading, setLoading] = useState(true);
-    const [logs, setLogs] = useState<any[]>([]);
-    const [leaves, setLeaves] = useState<any[]>([]);
-    const [stats, setStats] = useState<any>(null);
-    const [search, setSearch] = useState('');
-    const [view, setView] = useState<'list' | 'calendar'>('calendar');
-    const [month, setMonth] = useState(format(new Date(), 'yyyy-MM'));
 
     useEffect(() => {
+        setTitle("Attendance");
+        setActions([
+            {
+                label: "Attendance",
+                icon: Calendar,
+                onClick: () => { },
+                variant: 'outline'
+            },
+            {
+                label: "Add Employee",
+                icon: Plus,
+                onClick: () => { }
+            }
+        ]);
+
         fetchData();
-    }, [month]);
+
+        return () => {
+            setTitle("");
+            setActions([]);
+        };
+    }, [setTitle, setActions]);
 
     const fetchData = async () => {
-        setLoading(true);
         try {
-            const [logsRes, statsRes, leavesRes] = await Promise.all([
-                fetch(`/api/attendance?month=${month}`),
-                fetch(`/api/attendance/summary?month=${month}`),
-                fetch(`/api/leaves`)
-            ]);
+            // Fetch employees
+            const empRes = await fetch('/api/employees');
+            const empData = await empRes.json();
+            const emps = empData.employees || [];
 
-            const logsData = await logsRes.json();
-            const statsData = await statsRes.json();
-            const leavesData = await leavesRes.json();
+            // Fetch real stats
+            const statsRes = await fetch('/api/attendance/stats/performance');
+            const statsResult = await statsRes.json();
 
-            setLogs(logsData.logs || []);
-            setStats(statsData.stats);
-            setLeaves(leavesData.requests || []);
+            const total = emps.length;
+            const presentToday = statsResult.summary?.presentToday || 0;
+
+            setEmployees(emps);
+            setStats({
+                total,
+                present: presentToday,
+                leaves: total - presentToday
+            });
         } catch (err) {
-            console.error("Failed to fetch attendance data");
+            console.error(err);
         } finally {
             setLoading(false);
         }
     };
 
-    const isAdmin = ['admin', 'hr'].includes(role);
+    if (loading) return (
+        <div className="flex flex-col items-center justify-center p-24 gap-4">
+            <Loader2 className="w-10 h-10 animate-spin text-indigo-200" />
+            <p className="text-xs font-bold text-zinc-300 uppercase tracking-widest">Optimizing Attendance Flow</p>
+        </div>
+    );
+
+    const performancePercent = stats.total > 0 ? ((stats.present / stats.total) * 100).toFixed(1) : "0";
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-xl border border-zinc-200">
-                <div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <Link href="/dashboard" className="p-1 hover:bg-zinc-100 rounded-md transition-colors">
-                            <ArrowLeft className="w-4 h-4" />
-                        </Link>
-                        <h1 className="text-2xl font-bold text-zinc-900">Time & Attendance</h1>
+        <div className="space-y-10 pb-20">
+            <div className="grid grid-cols-12 gap-8">
+                {/* Left Side: Stats, Performance, Table */}
+                <div className="col-span-12 lg:col-span-8 flex flex-col gap-8">
+                    {/* Top Stats */}
+                    <div className="grid grid-cols-2 gap-8">
+                        {/* Today's Attendances */}
+                        <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-100/50 shadow-sm flex flex-col gap-6 relative overflow-hidden group hover:shadow-xl hover:shadow-zinc-200/40 transition-all duration-500">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-sm font-bold text-zinc-900">Today's Attendances</h3>
+                                <button className="text-zinc-300 hover:text-zinc-600"><MoreHorizontal className="w-4 h-4" /></button>
+                            </div>
+                            <div>
+                                <p className="text-5xl font-black text-zinc-900 tracking-tighter">{stats.present}</p>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-2">Active Workforce Today</p>
+                            </div>
+                            <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-indigo-50 rounded-full opacity-50 group-hover:scale-110 transition-transform" />
+                        </div>
+
+                        {/* Today's Performance */}
+                        <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-100/50 shadow-sm flex flex-col gap-6 relative overflow-hidden group hover:shadow-xl hover:shadow-zinc-200/40 transition-all duration-500">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-sm font-bold text-zinc-900">System Utilization</h3>
+                                <button className="text-zinc-300 hover:text-zinc-600"><MoreHorizontal className="w-4 h-4" /></button>
+                            </div>
+                            <div>
+                                <div className="flex items-end gap-3">
+                                    <p className="text-5xl font-black text-zinc-900 tracking-tighter">{performancePercent}%</p>
+                                    <div className="flex items-center gap-1 text-emerald-500 text-[10px] font-bold bg-emerald-50 px-2 py-0.5 rounded-full mb-1 border border-emerald-100">
+                                        <ArrowUpRight className="w-3 h-3" />
+                                        Optimal
+                                    </div>
+                                </div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-2">Vs. Capacity Optimization</p>
+                            </div>
+                            <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-emerald-50 rounded-full opacity-50 group-hover:scale-110 transition-transform" />
+                        </div>
                     </div>
-                    <p className="text-zinc-500 text-sm">
-                        Total workspace attendance for {format(new Date(month + '-01'), 'MMMM yyyy')}
-                    </p>
+
+                    {/* Performance Chart */}
+                    <div className="h-[400px]">
+                        <PerformanceChart />
+                    </div>
+
+                    {/* Employee Status Table */}
+                    <div className="mt-4">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-black text-zinc-900 tracking-tight uppercase">Employees Attendances</h2>
+                            <div className="flex items-center gap-3">
+                                <div className="flex items-center bg-zinc-100 p-1 rounded-xl">
+                                    {["Overview", "Present", "On Leave"].map((tab) => (
+                                        <button
+                                            key={tab}
+                                            className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${tab === "Overview" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-400 hover:text-zinc-600"
+                                                }`}
+                                        >
+                                            {tab}
+                                        </button>
+                                    ))}
+                                </div>
+                                <button className="flex items-center gap-2 px-4 py-2 border border-zinc-100 rounded-xl text-[10px] font-bold text-zinc-600 uppercase tracking-widest hover:bg-zinc-50">
+                                    <LayoutGrid className="w-3.5 h-3.5" />
+                                    Filter
+                                </button>
+                            </div>
+                        </div>
+                        <EmployeeStatusTable employees={employees} />
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <div className="flex bg-zinc-100 p-1 rounded-lg border border-zinc-200">
-                        <Button
-                            variant={view === 'calendar' ? 'secondary' : 'ghost'}
-                            size="sm"
-                            onClick={() => setView('calendar')}
-                            className="h-8 text-xs font-bold"
-                        >
-                            Calendar
-                        </Button>
-                        <Button
-                            variant={view === 'list' ? 'secondary' : 'ghost'}
-                            size="sm"
-                            onClick={() => setView('list')}
-                            className="h-8 text-xs font-bold"
-                        >
-                            List
-                        </Button>
-                    </div>
-                    <Input
-                        type="month"
-                        value={month}
-                        onChange={(e) => setMonth(e.target.value)}
-                        className="w-40 bg-white"
-                    />
-                    <Button variant="outline" className="shadow-sm">
-                        <FileText className="w-4 h-4 mr-2" />
-                        Export
-                    </Button>
+                {/* Right Side: Gauge & Leaves */}
+                <div className="col-span-12 lg:col-span-4 flex flex-col gap-8">
+                    <AttendanceGauge percentage={parseFloat(performancePercent)} department="Organization Wide" />
+                    <EmployeeOnLeaves employees={employees.filter(e => e.status === 'on leave')} />
                 </div>
             </div>
-
-            {view === 'calendar' ? (
-                <AttendanceCalendar
-                    logs={logs}
-                    leaves={leaves}
-                    currentMonth={month}
-                    onMonthChange={setMonth}
-                />
-            ) : (
-                <div className="space-y-6">
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <Card className="bg-white border-zinc-200 shadow-sm">
-                            <CardContent className="pt-6">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <p className="text-sm font-medium text-zinc-500 uppercase">Days Present</p>
-                                        <h3 className="text-2xl font-bold mt-1">{stats?.totalDays || 0}</h3>
-                                    </div>
-                                    <div className="p-2 bg-blue-50 rounded-lg">
-                                        <Calendar className="w-5 h-5 text-blue-600" />
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                        <Card className="bg-white border-zinc-200 shadow-sm">
-                            <CardContent className="pt-6">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <p className="text-sm font-medium text-zinc-500 uppercase">Total Hours</p>
-                                        <h3 className="text-2xl font-bold mt-1 text-zinc-900">{stats?.totalHours || 0}h</h3>
-                                    </div>
-                                    <div className="p-2 bg-green-50 rounded-lg">
-                                        <Clock className="w-5 h-5 text-green-600" />
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                        <Card className="bg-white border-zinc-200 shadow-sm">
-                            <CardContent className="pt-6">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <p className="text-sm font-medium text-zinc-500 uppercase">Avg Daily</p>
-                                        <h3 className="text-2xl font-bold mt-1">{stats?.averageHours || 0}h</h3>
-                                    </div>
-                                    <div className="p-2 bg-purple-50 rounded-lg">
-                                        <Clock3 className="w-5 h-5 text-purple-600" />
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                        <Card className="bg-white border-zinc-200 shadow-sm">
-                            <CardContent className="pt-6">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <p className="text-sm font-medium text-zinc-500 uppercase">Late Days</p>
-                                        <h3 className="text-2xl font-bold mt-1">{stats?.lateDays || 0}</h3>
-                                    </div>
-                                    <div className="p-2 bg-orange-50 rounded-lg">
-                                        <Filter className="w-5 h-5 text-orange-600" />
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Logs Table */}
-                    <Card className="bg-white border-zinc-200 shadow-sm overflow-hidden">
-                        <CardHeader className="flex flex-row items-center justify-between border-b border-zinc-100 py-4 px-6 bg-zinc-50/50">
-                            <div className="flex items-center gap-4 flex-1">
-                                <CardTitle className="text-base font-semibold">Attendance Logs</CardTitle>
-                                <div className="relative max-w-xs flex-1">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                                    <Input
-                                        placeholder="Search employee..."
-                                        className="pl-9 bg-white"
-                                        value={search}
-                                        onChange={(e) => setSearch(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm text-left">
-                                    <thead className="bg-zinc-50/50 text-zinc-500 font-medium border-b border-zinc-100">
-                                        <tr>
-                                            <th className="px-6 py-3">Date</th>
-                                            <th className="px-6 py-3">Employee</th>
-                                            <th className="px-6 py-3">Clock In</th>
-                                            <th className="px-6 py-3">Clock Out</th>
-                                            <th className="px-6 py-3 text-center">Total Hours</th>
-                                            <th className="px-6 py-3 text-right">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-zinc-100">
-                                        {loading ? (
-                                            <tr>
-                                                <td colSpan={6} className="px-6 py-12 text-center text-zinc-400">
-                                                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
-                                                    Fetching logs...
-                                                </td>
-                                            </tr>
-                                        ) : logs.length === 0 ? (
-                                            <tr>
-                                                <td colSpan={6} className="px-6 py-12 text-center text-zinc-400">
-                                                    No logs found for this period.
-                                                </td>
-                                            </tr>
-                                        ) : logs.filter(l =>
-                                            l.employees?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-                                            l.employees?.emp_code?.toLowerCase().includes(search.toLowerCase())
-                                        ).map((log) => (
-                                            <tr key={log.id} className="hover:bg-zinc-50/50 transition-colors group">
-                                                <td className="px-6 py-4 font-medium text-zinc-900">
-                                                    {format(new Date(log.date), 'dd MMM yyyy')}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-semibold text-zinc-900">{log.employees?.full_name}</span>
-                                                        <span className="text-[10px] text-zinc-400 uppercase tracking-widest">{log.employees?.emp_code}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-1.5 text-blue-600 font-medium">
-                                                        <ArrowUpRight className="w-3.5 h-3.5" />
-                                                        {format(new Date(log.clock_in), 'hh:mm a')}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    {log.clock_out ? (
-                                                        <div className="flex items-center gap-1.5 text-orange-600 font-medium">
-                                                            <ArrowDownRight className="w-3.5 h-3.5" />
-                                                            {format(new Date(log.clock_out), 'hh:mm a')}
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-zinc-400 italic">Ongoing</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4 text-center font-mono">
-                                                    {log.total_hours ? `${log.total_hours}h` : '-'}
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <Badge
-                                                        variant={log.status === 'present' ? 'default' : 'secondary'}
-                                                        className="capitalize"
-                                                    >
-                                                        {log.status}
-                                                    </Badge>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
         </div>
     );
 }

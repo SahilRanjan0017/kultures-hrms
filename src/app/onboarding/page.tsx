@@ -56,33 +56,16 @@ export default function OnboardingPage() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            // ✅ Check profiles table (not tenant_members)
+            // ✅ Check profiles table
             let { data } = await supabase
                 .from("profiles")
-                .select("tenant_id")
+                .select("tenant_id, role")
                 .eq("id", user.id)
                 .single();
 
-            // ✅ Special Case: Sync existing employee session via API
-            if (!data?.tenant_id) {
-                console.log("→ [CLIENT] Triggering /api/auth/sync in onboarding");
-                await fetch("/api/auth/sync", { method: "POST" });
-
-                // Re-fetch profile after sync
-                const { data: updatedProfile } = await supabase
-                    .from("profiles")
-                    .select("tenant_id")
-                    .eq("id", user.id)
-                    .single();
-
-                if (updatedProfile) {
-                    data = updatedProfile;
-                }
-            }
-
-
-            if (data?.tenant_id) {
-                router.push("/dashboard"); // ← already onboarded
+            // ✅ If they are an admin, they have already onboarded
+            if (data?.tenant_id && data.role === 'admin') {
+                router.push("/dashboard");
             }
 
         }

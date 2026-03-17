@@ -1,13 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Plus, Calendar as CalendarIcon, History, AlertCircle, CheckCircle2, Clock, XCircle } from 'lucide-react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
+import {
+    Plus,
+    History,
+    Calendar as CalendarIcon,
+    CheckCircle2,
+    Clock,
+    XCircle,
+    AlertCircle,
+    Loader2,
+    ChevronRight,
+    TrendingUp
+} from "lucide-react";
+import { useHeader } from "@/lib/header-context";
 
 interface LeaveBalance {
     id: string;
@@ -34,9 +42,32 @@ interface LeaveRequest {
 }
 
 export default function LeavesPage() {
+    const router = useRouter();
+    const { setTitle, setActions } = useHeader();
     const [balances, setBalances] = useState<LeaveBalance[]>([]);
     const [requests, setRequests] = useState<LeaveRequest[]>([]);
     const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        setTitle("Leave Management");
+        setActions([
+            {
+                label: "Request Approvals",
+                icon: History,
+                onClick: () => router.push("/dashboard/leaves/approvals"),
+                variant: 'outline'
+            },
+            {
+                label: "Apply for Leave",
+                icon: Plus,
+                onClick: () => router.push("/dashboard/leaves/apply")
+            }
+        ]);
+        return () => {
+            setTitle("");
+            setActions([]);
+        };
+    }, [setTitle, setActions, router]);
 
     useEffect(() => {
         fetchData();
@@ -48,10 +79,8 @@ export default function LeavesPage() {
                 fetch('/api/leaves/balance'),
                 fetch('/api/leaves')
             ]);
-
             const balanceData = await balanceRes.json();
             const historyData = await historyRes.json();
-
             setBalances(balanceData.balances || []);
             setRequests(historyData.requests || []);
         } catch (error) {
@@ -61,164 +90,107 @@ export default function LeavesPage() {
         }
     };
 
-    const getStatusIcon = (status: string) => {
-        switch (status) {
-            case 'approved': return <CheckCircle2 className="w-4 h-4 text-green-500" />;
-            case 'pending': return <Clock className="w-4 h-4 text-amber-500" />;
-            case 'rejected': return <XCircle className="w-4 h-4 text-red-500" />;
-            default: return <AlertCircle className="w-4 h-4 text-zinc-400" />;
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center p-12">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            </div>
-        );
-    }
-
     return (
-        <div className="max-w-6xl mx-auto space-y-8">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Leave Management</h1>
-                    <p className="text-muted-foreground">Track your leave balances and request history.</p>
-                </div>
-                <div className="flex gap-3">
-                    <Link href="/dashboard/leaves/approvals">
-                        <Button variant="outline">
-                            View Approvals
-                        </Button>
-                    </Link>
-                    <Link href="/dashboard/leaves/apply">
-                        <Button className="shadow-lg shadow-primary/20">
-                            <Plus className="w-4 h-4 mr-2" />
-                            Apply for Leave
-                        </Button>
-                    </Link>
-                </div>
-            </div>
-
-            {/* Balances Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="space-y-10 pb-12">
+            {/* Balance Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {balances.map((balance) => (
-                    <Card key={balance.id} className="relative overflow-hidden border-none shadow-md bg-white">
+                    <div key={balance.id} className="bg-white p-7 rounded-[2rem] border border-zinc-100/50 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
                         <div
-                            className="absolute top-0 left-0 w-1 h-full"
+                            className="absolute top-0 left-0 w-full h-1.5 opacity-80"
                             style={{ backgroundColor: balance.leave_type.color }}
                         />
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                                {balance.leave_type.name}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex items-baseline justify-between">
-                                <span className="text-3xl font-bold">{balance.available_days}</span>
-                                <span className="text-xs text-muted-foreground">Available / {balance.total_days}</span>
+                        <div className="flex justify-between items-start mb-6">
+                            <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-zinc-50 shadow-inner group-hover:scale-110 transition-transform">
+                                <CalendarIcon className="w-5 h-5 text-zinc-400" />
                             </div>
-                            <div className="mt-4 space-y-1">
-                                <div className="flex justify-between text-xs text-muted-foreground">
-                                    <span>Used</span>
-                                    <span>{balance.used_days} days</span>
-                                </div>
-                                <div className="flex justify-between text-xs text-muted-foreground">
-                                    <span>Pending</span>
-                                    <span>{balance.pending_days} days</span>
-                                </div>
-                                <div className="w-full h-1.5 bg-zinc-100 rounded-full mt-2 overflow-hidden">
-                                    <div
-                                        className="h-full rounded-full transition-all duration-500"
-                                        style={{
-                                            width: `${(balance.used_days / balance.total_days) * 100}%`,
-                                            backgroundColor: balance.leave_type.color
-                                        }}
-                                    />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
+                            <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em]">{balance.leave_type.name}</span>
+                        </div>
+                        <p className="text-3xl font-black text-zinc-900 leading-none">{balance.available_days}</p>
+                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-2">Available / {balance.total_days} Days</p>
 
-                {balances.length === 0 && (
-                    <Card className="col-span-full border-dashed border-2 bg-zinc-50/50">
-                        <CardContent className="flex flex-col items-center justify-center py-10">
-                            <AlertCircle className="w-10 h-10 text-zinc-300 mb-2" />
-                            <p className="text-sm text-muted-foreground">No leave balances allocated for this year.</p>
-                        </CardContent>
-                    </Card>
-                )}
+                        <div className="mt-6 flex items-center justify-between gap-4">
+                            <div className="flex-1 h-1.5 bg-zinc-50 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full rounded-full transition-all duration-700"
+                                    style={{
+                                        width: `${(balance.used_days / balance.total_days) * 100}%`,
+                                        backgroundColor: balance.leave_type.color
+                                    }}
+                                />
+                            </div>
+                            <span className="text-[10px] font-bold text-zinc-500 whitespace-nowrap">{balance.used_days} Used</span>
+                        </div>
+                    </div>
+                ))}
             </div>
 
-            {/* Request History */}
-            <Card className="shadow-sm border-zinc-200">
-                <CardHeader className="flex flex-row items-center justify-between">
+            {/* History Table */}
+            <div className="bg-white rounded-[2.5rem] border border-zinc-100/50 shadow-sm overflow-hidden">
+                <div className="p-8 border-b border-zinc-50 flex items-center justify-between">
                     <div>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                            <History className="w-5 h-5" />
-                            Request History
-                        </CardTitle>
-                        <CardDescription>A list of your recent leave applications.</CardDescription>
+                        <h2 className="text-lg font-bold text-zinc-900 tracking-tight">Recent Applications</h2>
+                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Leave Request History</p>
                     </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="bg-zinc-50/50">
-                                <TableHead>Leave Type</TableHead>
-                                <TableHead>Duration</TableHead>
-                                <TableHead>Days</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Applied On</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
+                    <button className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest hover:underline">Download Report</button>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-zinc-50/50 border-b border-zinc-100">
+                                <th className="px-8 py-5 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Type</th>
+                                <th className="px-8 py-5 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Duration</th>
+                                <th className="px-8 py-5 text-[10px] font-bold text-zinc-400 uppercase tracking-widest text-center">Days</th>
+                                <th className="px-8 py-5 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Status</th>
+                                <th className="px-8 py-5 text-[10px] font-bold text-zinc-400 uppercase tracking-widest text-right">Applied On</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-50">
                             {requests.map((request) => (
-                                <TableRow key={request.id}>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
+                                <tr key={request.id} className="group hover:bg-zinc-50/50 transition-all cursor-pointer">
+                                    <td className="px-8 py-5">
+                                        <div className="flex items-center gap-3">
                                             <div
-                                                className="w-2 h-2 rounded-full"
+                                                className="w-2.5 h-2.5 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.1)]"
                                                 style={{ backgroundColor: request.leave_type.color }}
                                             />
-                                            <span className="font-medium text-sm">{request.leave_type.name}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-1.5 text-xs text-zinc-600">
-                                            <CalendarIcon className="w-3.5 h-3.5 opacity-50" />
-                                            {format(new Date(request.start_date), 'MMM d')} — {format(new Date(request.end_date), 'MMM d, yyyy')}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="font-semibold text-sm">
-                                        {request.days_count}
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            {getStatusIcon(request.status)}
-                                            <span className="text-xs font-bold uppercase tracking-widest text-zinc-600">
-                                                {request.status}
+                                            <span className="text-sm font-bold text-zinc-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight italic">
+                                                {request.leave_type.name}
                                             </span>
                                         </div>
-                                    </TableCell>
-                                    <TableCell className="text-xs text-zinc-500">
-                                        {format(new Date(request.created_at), 'MMM d, h:mm a')}
-                                    </TableCell>
-                                </TableRow>
+                                    </td>
+                                    <td className="px-8 py-5">
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-zinc-900">
+                                                {format(new Date(request.start_date), 'dd MMM')} — {format(new Date(request.end_date), 'dd MMM, yyyy')}
+                                            </span>
+                                            <span className="text-[10px] font-medium text-zinc-400 mt-0.5 line-clamp-1 italic">"{request.reason}"</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-8 py-5 text-center">
+                                        <span className="text-xs font-black text-zinc-900">{request.days_count}</span>
+                                    </td>
+                                    <td className="px-8 py-5">
+                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider ${request.status === 'approved' ? 'bg-emerald-50 text-emerald-600' :
+                                            request.status === 'pending' ? 'bg-amber-50 text-amber-600' :
+                                                'bg-rose-50 text-rose-600'
+                                            }`}>
+                                            {request.status === 'approved' && <CheckCircle2 className="w-3 h-3" />}
+                                            {request.status === 'pending' && <Clock className="w-3 h-3" />}
+                                            {request.status === 'rejected' && <XCircle className="w-3 h-3" />}
+                                            {request.status}
+                                        </span>
+                                    </td>
+                                    <td className="px-8 py-5 text-right font-bold text-xs text-zinc-400">
+                                        {format(new Date(request.created_at), 'dd MMM')}
+                                    </td>
+                                </tr>
                             ))}
-
-                            {requests.length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-10 text-muted-foreground italic text-sm">
-                                        You haven't applied for any leave yet.
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     );
 }
+

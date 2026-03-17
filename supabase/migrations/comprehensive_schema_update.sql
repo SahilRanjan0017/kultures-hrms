@@ -18,6 +18,13 @@ ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS bio text;
 ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS department text;
 ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS designation text;
 
+-- 2.1 Update attendance_logs with geolocation columns
+ALTER TABLE public.attendance_logs 
+  ADD COLUMN IF NOT EXISTS clock_in_lat numeric,
+  ADD COLUMN IF NOT EXISTS clock_in_lng numeric,
+  ADD COLUMN IF NOT EXISTS clock_out_lat numeric,
+  ADD COLUMN IF NOT EXISTS clock_out_lng numeric;
+
 -- Add manager relationship
 DO $$ 
 BEGIN

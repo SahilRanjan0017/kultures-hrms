@@ -37,8 +37,34 @@ export default function DashboardStatusHeader() {
 
     const handleClockToggle = async () => {
         setActionLoading(true);
+
         try {
-            const res = await fetch('/api/attendance/clock', { method: 'POST' });
+            // Get geolocation
+            let lat = null;
+            let lng = null;
+
+            try {
+                const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 0
+                    });
+                });
+                lat = position.coords.latitude;
+                lng = position.coords.longitude;
+            } catch (geoError) {
+                console.warn("Geolocation failed or denied:", geoError);
+                // Optionally alert the user if location is mandatory
+                // if (mandatoryLocation) return;
+            }
+
+            const res = await fetch('/api/attendance/clock', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lat, lng })
+            });
+
             const data = await res.json();
             if (data.ok) {
                 if (data.type === 'clock_in') {

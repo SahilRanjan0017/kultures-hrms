@@ -9,7 +9,7 @@ export async function syncUserSession(userId: string, email: string, supabase: S
     // 1. Find employee record by email or user_id
     const { data: employeeData, error: employeeError } = await adminSupabase
         .from("employees")
-        .select("id, tenant_id, role")
+        .select("id, tenant_id, role, user_id")
         .eq("email", email)
         .single();
 
@@ -58,6 +58,24 @@ export async function syncUserSession(userId: string, email: string, supabase: S
 
     if (memberError) {
         console.error("→ [SYNC] Membership sync error:", memberError.message);
+    }
+
+    // 4. Update employee record with user_id & status if invited
+    const updateData: any = {};
+    if (!employeeData.user_id) updateData.user_id = userId;
+
+    // Always ensure status is 'active' upon successful sync/login
+    updateData.status = 'active';
+
+    const { error: empUpdateError } = await adminSupabase
+        .from("employees")
+        .update(updateData)
+        .eq("id", employeeId);
+
+    if (empUpdateError) {
+        console.error("→ [SYNC] Employee update error:", empUpdateError.message);
+    } else {
+        console.log(`→ [SYNC] Updated employee ${employeeId}: user linked and status set to active`);
     }
 
     console.log(`→ [SYNC] Sync complete for ${email}. Result:`, !!profileData);
