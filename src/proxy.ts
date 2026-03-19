@@ -26,19 +26,14 @@ export async function proxy(request: NextRequest) {
     const parts = hostname.split(".");
 
     // Determine cookie domain for cross-subdomain auth
-    let cookieDomain = isLocal ? "localhost" : ".kultures.io";
+    let cookieDomain = isLocal ? undefined : ".kultures.io";
 
-    if (isVercel) {
+    if (isVercel && parts.length >= 3) {
         // For Vercel, use the root project domain (3 parts: [project].vercel.app)
-        if (parts.length >= 3) {
-            cookieDomain = parts.slice(-3).join(".");
-        }
-    } else if (!isLocal) {
+        cookieDomain = "." + parts.slice(-3).join(".");
+    } else if (!isLocal && parts.length >= 2) {
         // For production custom domains (2 parts: kultures.io)
-        if (parts.length >= 2) {
-            // Check if it's already a tenant (3+ parts) or root (2 parts)
-            cookieDomain = "." + parts.slice(-2).join(".");
-        }
+        cookieDomain = "." + parts.slice(-2).join(".");
     }
 
     // ✅ 3. INITIALIZE CLIENT SUPABASE
@@ -54,13 +49,14 @@ export async function proxy(request: NextRequest) {
                     cookiesToSet.forEach(({ name, value }) =>
                         request.cookies.set(name, value)
                     );
-                    response = NextResponse.next({ request });
+                    const nextResponse = NextResponse.next({ request });
                     cookiesToSet.forEach(({ name, value, options }) =>
-                        response.cookies.set(name, value, {
+                        nextResponse.cookies.set(name, value, {
                             ...options,
-                            domain: cookieDomain
+                            ...(isLocal ? {} : { domain: cookieDomain })
                         })
                     );
+                    response = nextResponse;
                 },
             },
         }

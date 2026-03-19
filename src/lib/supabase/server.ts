@@ -6,7 +6,15 @@ export async function createClient() {
     const headersList = await headers();
     const host = headersList.get("host") || "";
     const isLocal = host.includes("localhost");
-    const cookieDomain = isLocal ? "localhost" : ".kultures.io";
+    const parts = host.split(".");
+    let cookieDomain = undefined;
+    if (isLocal) {
+        cookieDomain = undefined;
+    } else if (host.includes("vercel.app") && parts.length >= 3) {
+        cookieDomain = "." + parts.slice(-3).join(".");
+    } else if (parts.length >= 2) {
+        cookieDomain = "." + parts.slice(-2).join(".");
+    }
 
     return createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,7 +31,7 @@ export async function createClient() {
                                 name,
                                 value,
                                 ...options,
-                                domain: cookieDomain // Allow cookies to work across subdomains
+                                domain: isLocal ? undefined : cookieDomain // Allow cookies to work across subdomains
                             });
                         });
                     } catch {
