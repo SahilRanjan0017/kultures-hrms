@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 
+/**
+ * Lightweight Heartbeat API.
+ * The session refresh is automatically handled by the middleware (proxy.ts) 
+ * for every request to /api/* routes. This endpoint just provides a target
+ * to trigger that middleware logic without redundant Auth API hits.
+ */
 export async function GET() {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    console.log("→ [API] Session in Heartbeat:", user?.email || "NULL");
-    return NextResponse.json({ ok: true, user: user?.email, timestamp: new Date().toISOString() });
+    return NextResponse.json({
+        ok: true,
+        timestamp: new Date().toISOString()
+    });
 }

@@ -150,7 +150,11 @@ export async function proxy(request: NextRequest) {
         }
     }
 
-    // ✅ 7. SUBDOMAIN INTERNAL REWRITE
+    // ✅ 7. CSP & SECURITY HEADERS (Allow Extension)
+    const extensionId = "19899a6a-0e40-4634-9ed3-bba4e5bf027d";
+    const cspHeader = `script-src 'self' 'unsafe-inline' 'unsafe-eval' chrome-extension://${extensionId}/; object-src 'none'; base-uri 'self';`;
+
+    // ✅ 8. SUBDOMAIN INTERNAL REWRITE
     if (tenantSubdomain && !pathname.startsWith("/tenant")) {
         const isRoot = pathname === "/";
         const path = isRoot ? "/dashboard" : pathname;
@@ -162,9 +166,13 @@ export async function proxy(request: NextRequest) {
             rewriteResponse.cookies.set(cookie.name, cookie.value, { domain: cookieDomain });
         });
 
+        // Add CSP to rewrite
+        rewriteResponse.headers.set("Content-Security-Policy", cspHeader);
+
         return rewriteResponse;
     }
 
+    response.headers.set("Content-Security-Policy", cspHeader);
     return response;
 }
 

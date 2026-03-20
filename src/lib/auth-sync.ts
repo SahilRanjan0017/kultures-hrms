@@ -34,7 +34,8 @@ export async function syncUserSession(userId: string, email: string, supabase: S
             employee_id: employeeId,
             role: role,
             email: email,
-            is_first_login: false // Assuming if they are in employees, they've been handled
+            // We removed explicit is_first_login: false here to allow 
+            // the database default or the value set during invitation to persist.
         })
         .select()
         .single();

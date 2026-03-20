@@ -16,10 +16,17 @@ export async function POST() {
 
         const adminSupabase = createAdminClient();
 
+        // 1. Clear flag in profiles
         await adminSupabase
             .from("profiles")
             .update({ is_first_login: false })
             .eq("id", user.id);
+
+        // 2. Clear flag in tenant_members (for invited users)
+        await adminSupabase
+            .from("tenant_members")
+            .update({ must_change_password: false })
+            .eq("user_id", user.id);
 
         return NextResponse.json({ ok: true });
 

@@ -142,10 +142,10 @@ export default function DashboardLayout({
         // ✅ Enterprise "Heartbeat" — keeps session fresh during idle periods
         const heartbeat = setInterval(async () => {
             console.log("→ [AUTH] Heartbeat triggered at:", new Date().toLocaleTimeString());
-            const supabase = createClient();
+            // Consolidate: Just hit the heartbeat API which checks session on server
+            // This also helps keep the Vercel/Server session active
             await fetch('/api/auth/heartbeat').catch(() => { });
-            await supabase.auth.getUser();
-        }, 30 * 1000); // 30 seconds for verification (usually 10 mins)
+        }, 10 * 60 * 1000); // 10 minutes (standard for Supabase sessions)
 
         // ✅ Check 8: Tab Focus Refresh
         const onFocus = () => {
