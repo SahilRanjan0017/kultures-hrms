@@ -138,6 +138,27 @@ export default function DashboardLayout({
             setLoading(false);
         }
         load();
+
+        // ✅ Enterprise "Heartbeat" — keeps session fresh during idle periods
+        const heartbeat = setInterval(async () => {
+            console.log("→ [AUTH] Heartbeat triggered at:", new Date().toLocaleTimeString());
+            const supabase = createClient();
+            await fetch('/api/auth/heartbeat').catch(() => { });
+            await supabase.auth.getUser();
+        }, 30 * 1000); // 30 seconds for verification (usually 10 mins)
+
+        // ✅ Check 8: Tab Focus Refresh
+        const onFocus = () => {
+            console.log("→ [AUTH] Tab focus refresh triggered at:", new Date().toLocaleTimeString());
+            const supabase = createClient();
+            supabase.auth.getUser();
+        };
+        window.addEventListener("focus", onFocus);
+
+        return () => {
+            clearInterval(heartbeat);
+            window.removeEventListener("focus", onFocus);
+        };
     }, []);
 
     if (loading) return (

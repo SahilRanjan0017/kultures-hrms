@@ -29,8 +29,8 @@ const getClient = (): SupabaseClient => {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       auth: {
-        persistSession: false,
-        autoRefreshToken: true,
+        persistSession: true,
+        autoRefreshToken: false, // Prevents race conditions with middleware refreshes
         detectSessionInUrl: true,
       },
       cookieOptions: { domain: cookieDomain }

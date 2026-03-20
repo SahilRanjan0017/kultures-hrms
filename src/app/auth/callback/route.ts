@@ -10,11 +10,22 @@ export async function GET(request: NextRequest) {
     const type = requestUrl.searchParams.get("type");
     const next = requestUrl.searchParams.get("next") ?? "/dashboard";
 
+    // ✅ Robust origin detection for local dev vs production
+    const forwardedHost = request.headers.get("x-forwarded-host");
+    const host = request.headers.get("host") || "";
+    const protocol = request.headers.get("x-forwarded-proto") || "http";
+    const isLocal = host.includes("localhost");
+
+    // If we're redirected from a dev environment (like localhost or a tunnel), 
+    // we want to go back there for the final redirect.
+    let origin = requestUrl.origin;
+    if (forwardedHost?.includes("localhost") || isLocal) {
+        origin = `${protocol}://${forwardedHost || host}`;
+    }
+
     console.log("→ Callback hit, code:", code, "token_hash:", token_hash);
 
     const cookieStore = await cookies();
-    const host = request.headers.get("host") || "";
-    const isLocal = host.includes("localhost");
     const parts = host.split(".");
     let cookieDomain = undefined;
     if (isLocal) {
@@ -69,7 +80,7 @@ export async function GET(request: NextRequest) {
         if (error) {
             console.error("→ OTP error:", error.message);
             return NextResponse.redirect(
-                new URL(`/?error=otp_expired`, requestUrl.origin)
+                new URL(`/?error=otp_expired`, origin)
             );
         }
 
@@ -92,7 +103,7 @@ export async function GET(request: NextRequest) {
 
     if (!authSuccess) {
         console.log("→ No valid token or code");
-        return NextResponse.redirect(new URL("/", requestUrl.origin));
+        return NextResponse.redirect(new URL("/", origin));
     }
 
     // Now redirect, letting the middleware handle any next smart routing if needed
@@ -100,7 +111,7 @@ export async function GET(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-        return NextResponse.redirect(new URL("/", requestUrl.origin));
+        return NextResponse.redirect(new URL("/", origin));
     }
 
     // ✅ Robust Server-Side Sync for existing employees
@@ -114,13 +125,13 @@ export async function GET(request: NextRequest) {
         .single()).data;
 
     if (profile?.is_first_login) {
-        return NextResponse.redirect(new URL("/auth/set-password", requestUrl.origin));
+        return NextResponse.redirect(new URL("/auth/set-password", origin));
     }
 
     if (!profile?.tenant_id) {
-        return NextResponse.redirect(new URL("/onboarding", requestUrl.origin));
+        return NextResponse.redirect(new URL("/onboarding", origin));
     }
 
-    return NextResponse.redirect(new URL(next, requestUrl.origin));
+    return NextResponse.redirect(new URL(next, origin));
 
 }

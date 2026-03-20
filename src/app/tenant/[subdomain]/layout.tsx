@@ -15,7 +15,7 @@ export default async function TenantLayout({ children, params }: TenantLayoutPro
     const { data: tenant, error } = await supabase
         .from("tenants")
         .select("*")
-        .eq("subdomain", subdomain)
+        .eq("slug", subdomain)
         .single();
 
     if (error || !tenant) {
@@ -31,7 +31,7 @@ export default async function TenantLayout({ children, params }: TenantLayoutPro
             <header className="bg-white shadow border-b">
                 <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
                     <h1 className="text-xl font-bold tracking-tight text-gray-900">
-                        {tenant.company_name}
+                        {tenant.name}
                     </h1>
                     {tenant.status === 'trial' && (
                         <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10 border border-blue-200">

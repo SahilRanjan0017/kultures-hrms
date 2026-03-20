@@ -12,11 +12,14 @@ const adminSupabase = createSupabaseClient(
 
 export async function proxy(request: NextRequest) {
     let response = NextResponse.next({ request });
+    console.log("→ [PROXY] Middleware hit:", request.nextUrl.pathname);
 
-    // ✅ 2. SKIP STATIC ASSETS
-    if (request.nextUrl.pathname.startsWith("/_next") ||
-        request.nextUrl.pathname.includes(".") ||
-        request.nextUrl.pathname.startsWith("/api/")) {
+    // ✅ 2. SKIP STATIC ASSETS ONLY (Allow API and pages for Auth sync)
+    // Explicit grouping for enterprise-grade clarity
+    if (
+        request.nextUrl.pathname.startsWith("/_next") ||
+        (request.nextUrl.pathname.includes(".") && !request.nextUrl.pathname.startsWith("/api/"))
+    ) {
         return response;
     }
 
@@ -101,7 +104,7 @@ export async function proxy(request: NextRequest) {
             const { data } = await adminSupabase
                 .from("tenants")
                 .select("id")
-                .eq("subdomain", sub)
+                .eq("slug", sub)
                 .maybeSingle();
             return data;
         });

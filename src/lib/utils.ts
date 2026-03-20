@@ -6,6 +6,11 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function getAppUrl() {
+  // If in browser, use current origin as primary truth
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+
   let url =
     process?.env?.NEXT_PUBLIC_SITE_URL ??
     process?.env?.NEXT_PUBLIC_APP_URL ??

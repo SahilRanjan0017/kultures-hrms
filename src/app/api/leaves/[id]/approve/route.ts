@@ -77,8 +77,8 @@ export async function POST(
             await adminSupabase
                 .from('leave_balances')
                 .update({
-                    used_days: Number(balance.used_days) + Number(leaveRequest.days_count),
-                    pending_days: Number(balance.pending_days) - Number(leaveRequest.days_count),
+                    used_days: Number(balance.used_days) + Number(leaveRequest.total_days),
+                    pending_days: Number(balance.pending_days) - Number(leaveRequest.total_days),
                 })
                 .eq('id', balance.id);
         } else {
@@ -86,7 +86,7 @@ export async function POST(
             await adminSupabase
                 .from('leave_balances')
                 .update({
-                    pending_days: Number(balance.pending_days) - Number(leaveRequest.days_count),
+                    pending_days: Number(balance.pending_days) - Number(leaveRequest.total_days),
                 })
                 .eq('id', balance.id);
         }
@@ -107,7 +107,7 @@ export async function POST(
                 tenantId: leaveRequest.tenant_id,
                 userId: leaveRequest.employee.user_id,
                 title: action === 'approve' ? 'Leave Approved ✅' : 'Leave Rejected ❌',
-                message: `Your leave request for ${leaveRequest.days_count} days has been ${action === 'approve' ? 'approved' : 'rejected'}.`,
+                message: `Your leave request for ${leaveRequest.total_days} days has been ${action === 'approve' ? 'approved' : 'rejected'}.`,
                 type: action === 'approve' ? 'success' : 'error',
                 link: '/dashboard/leaves'
             });

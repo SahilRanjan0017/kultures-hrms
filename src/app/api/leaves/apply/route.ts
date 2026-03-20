@@ -59,12 +59,12 @@ export async function POST(request: NextRequest) {
             .from('leave_requests')
             .insert({
                 tenant_id: profile.tenant_id,
-                employee_id: profile.id, // using employees.id
+                employee_id: profile.id,
                 leave_type_id,
                 start_date,
                 end_date,
-                days_count: daysCount,
-                session,
+                total_days: daysCount, // Aligned with schema
+                session,               // Ensure this exists in DB
                 reason,
                 status: 'pending'
             })

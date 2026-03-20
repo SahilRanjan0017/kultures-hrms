@@ -13,7 +13,7 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
     const { data: tenant } = await supabase
         .from("tenants")
         .select("*")
-        .eq("subdomain", subdomain)
+        .eq("slug", subdomain)
         .single();
 
     if (!tenant) return null;
@@ -28,7 +28,7 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
     return (
         <div className="bg-white shadow sm:rounded-lg p-6 border">
             <h2 className="text-2xl font-medium text-gray-900 mb-4">
-                Welcome to {tenant.company_name} HRMS
+                Welcome to {tenant.name} HRMS
             </h2>
             <div className="rounded-md bg-blue-50 p-4 mb-6 border border-blue-100">
                 <div className="flex">

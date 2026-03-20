@@ -5,12 +5,12 @@ import { getAppUrl } from "@/lib/utils";
 export async function GET(request: Request) {
     const tenantData = await getUserTenant();
 
-    if (tenantData && tenantData.tenants && tenantData.tenants.subdomain) {
-        const subdomain = tenantData.tenants.subdomain;
+    if (tenantData && tenantData.tenants && tenantData.tenants.slug) {
+        const slug = tenantData.tenants.slug;
         const isLocalhost = getAppUrl().includes('localhost');
         const redirectUrl = isLocalhost
-            ? `http://${subdomain}.localhost:3000`
-            : `https://${subdomain}.kultures.io`;
+            ? `http://${slug}.localhost:3000`
+            : `https://${slug}.kultures.io`;
 
         return NextResponse.redirect(redirectUrl);
     }

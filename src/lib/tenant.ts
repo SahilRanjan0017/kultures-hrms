@@ -3,8 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 export type TenantMember = {
     tenant_id: string;
     tenants: {
-        subdomain: string;
-        company_name: string;
+        slug: string;
+        name: string;
     } | null;
 };
 
@@ -18,7 +18,7 @@ export async function getUserTenant(): Promise<TenantMember | null> {
 
     const { data, error } = await supabase
         .from("profiles")
-        .select("tenant_id, tenants ( subdomain, company_name )")
+        .select("tenant_id, tenants ( slug, name )")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -31,8 +31,8 @@ export async function getUserTenant(): Promise<TenantMember | null> {
     return {
         tenant_id: data.tenant_id,
         tenants: tenantsNode ? {
-            subdomain: tenantsNode.subdomain,
-            company_name: tenantsNode.company_name
+            slug: tenantsNode.slug,
+            name: tenantsNode.name
         } : null
     };
 }
