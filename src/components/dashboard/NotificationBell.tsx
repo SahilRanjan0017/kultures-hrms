@@ -31,8 +31,16 @@ export default function NotificationBell() {
     }
 
     useEffect(() => {
+        // Initial fetch
         fetchNotifications();
-        const interval = setInterval(fetchNotifications, 60000); // Poll every minute
+
+        const interval = setInterval(() => {
+            // Only poll if the tab is visible to avoid redundant auth hits from idle tabs
+            if (document.visibilityState === 'visible') {
+                fetchNotifications();
+            }
+        }, 60000); // Poll every minute
+
         return () => clearInterval(interval);
     }, []);
 

@@ -43,24 +43,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const supabase = createClient();
 
-        // ─── STEP 1: Read initial session from localStorage (no network call).
+        // ─── STEP 1: Read initial session with Staggered Initialization ───
         //
-        // @supabase/ssr persists the session in localStorage under a fixed key.
-        // getSession() reads from that cache synchronously in the same microtask:
-        //   • If the token is still valid → returns immediately, zero requests.
-        //   • If the token is expired    → autoRefreshToken fires ONE /token call.
-        //     That call is coordinated via a browser Storage Lock (Web Locks API)
-        //     so even multiple tabs calling getSession() simultaneously will only
-        //     produce a single network request — the others wait on the lock and
-        //     read the refreshed value written to localStorage by the winner.
-        //
-        // We call this ONCE on mount, purely to hydrate React state from the
-        // already-in-storage session so the UI doesn't flicker.
-        async function readInitialSession() {
+        // On mount (especially multi-tab startup), we add a small random delay
+        // (0-300ms) to stagger the network calls if a refresh is needed.
+        // This spreads out the "thundering herd" and prevents 429s.
+        async function readInitialSession(retryCount = 0) {
             try {
+                // Stagger only on the first attempt
+                if (retryCount === 0) {
+                    const stagger = Math.floor(Math.random() * 300);
+                    await new Promise(resolve => setTimeout(resolve, stagger));
+                }
+
                 const {
                     data: { session: initial },
+                    error
                 } = await supabase.auth.getSession();
+
+                // Handle Auth errors (429 or Lock timeouts)
+                if (error) {
+                    console.warn(`→ [AUTH] Session Read Error (Attempt ${retryCount + 1}):`, error.message);
+
+                    // Report to health monitor
+                    await fetch('/api/auth/health', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: error.status === 429 ? 'auth:429' : 'auth:lock_fail',
+                            error: error.message,
+                            path: window.location.pathname,
+                            metadata: { retryCount }
+                        })
+                    }).catch(() => { }); // Silence reporting errors
+
+                    // Retry once after 2 seconds if it's a lock or rate limit issue
+                    if (retryCount < 1 && (error.status === 429 || error.message.includes('lock'))) {
+                        setTimeout(() => readInitialSession(retryCount + 1), 2000);
+                        return;
+                    }
+                }
+
                 setSession(initial);
                 setUser(initial?.user ?? null);
             } catch (err) {
@@ -73,27 +95,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         readInitialSession();
 
         // ─── STEP 2: Register the ONE global auth state listener.
-        //
-        // This is the ONLY place in the entire app where auth state is observed.
-        // It fires for:
-        //   • INITIAL_SESSION    — immediately on registration with cached session
-        //   • SIGNED_IN          — after a successful login
-        //   • TOKEN_REFRESHED    — autoRefreshToken silently renewed the access token
-        //   • SIGNED_OUT         — explicit signOut(), or unrecoverable expiry
-        //   • USER_UPDATED       — user metadata changed
-        //
-        // Multi-tab token refresh guarantee:
-        //   1. All tabs share the same localStorage key (same origin, same Supabase URL).
-        //   2. When a token nears expiry, the first tab to trigger autoRefreshToken
-        //      acquires a Web Lock ("sb-refresh-token") exclusive to that lock name.
-        //   3. Only the lock-holder makes the POST /token?grant_type=refresh_token call.
-        //   4. On success it writes the new session to localStorage and releases the lock.
-        //   5. Other tabs receive a native `storage` event, which @supabase/ssr
-        //      translates into a TOKEN_REFRESHED onAuthStateChange event — without
-        //      making any network call of their own.
-        //
-        // Result: exactly ONE /token request per expiry cycle, regardless of how many
-        // tabs are open. No 429s, no lock errors, no AbortErrors.
         const {
             data: { subscription },
         } = supabase.auth.onAuthStateChange((event, currentSession) => {
@@ -107,20 +108,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(currentSession?.user ?? null);
 
             if (event === "SIGNED_OUT") {
-                // routerRef is always fresh — never a stale closure.
                 routerRef.current.push("/auth/login");
             }
         });
 
-        // ─── STEP 3: Cleanup — runs on component unmount (or HMR hot-reload).
+        // ─── STEP 3: Resume-from-Sleep / Long Idle Check ───
         //
-        // subscription.unsubscribe() deregisters the listener from Supabase's
-        // internal emitter. Because the dep array is [], this cleanup only fires
-        // once: when AuthProvider is removed from the tree, which in practice
-        // only happens when the app is closed or during HMR. It is NOT called
-        // between renders.
+        // If the user tab has been idle for a long time (PC sleep), we gently 
+        // validate the session when focus returns. We only do this every 30 mins
+        // to avoid spamming the Auth server during active tab switching.
+        let lastCheck = Date.now();
+        const handleFocus = async () => {
+            const now = Date.now();
+            if (now - lastCheck > 1000 * 60 * 30) { // 30 minutes
+                console.log("→ [AUTH] Resuming after idle, validating session...");
+                lastCheck = now;
+                await readInitialSession(0);
+            }
+        };
+        window.addEventListener('focus', handleFocus);
+
+        // ─── STEP 4: Cleanup
         return () => {
             subscription.unsubscribe();
+            window.removeEventListener('focus', handleFocus);
         };
 
         // ─── CRITICAL: Empty dependency array.

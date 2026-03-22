@@ -12,18 +12,16 @@ const adminSupabase = createSupabaseClient(
 
 export async function proxy(request: NextRequest) {
     let response = NextResponse.next({ request });
-    console.log("→ [PROXY] Middleware hit:", request.nextUrl.pathname);
+    const { pathname, hostname } = request.nextUrl;
 
-    // ✅ 2. SKIP STATIC ASSETS ONLY (Allow API and pages for Auth sync)
-    // Explicit grouping for enterprise-grade clarity
+    // ✅ 2. SKIP STATIC ASSETS ONLY
     if (
-        request.nextUrl.pathname.startsWith("/_next") ||
-        (request.nextUrl.pathname.includes(".") && !request.nextUrl.pathname.startsWith("/api/"))
+        pathname.startsWith("/_next") ||
+        (pathname.includes(".") && !pathname.startsWith("/api/"))
     ) {
         return response;
     }
 
-    const { pathname, hostname } = request.nextUrl;
     const isLocal = hostname.includes("localhost");
     const isVercel = hostname.includes("vercel.app");
     const parts = hostname.split(".");
@@ -32,14 +30,19 @@ export async function proxy(request: NextRequest) {
     let cookieDomain = isLocal ? undefined : ".kultures.io";
 
     if (isVercel && parts.length >= 3) {
-        // For Vercel, use the root project domain (3 parts: [project].vercel.app)
         cookieDomain = "." + parts.slice(-3).join(".");
     } else if (!isLocal && parts.length >= 2) {
-        // For production custom domains (2 parts: kultures.io)
         cookieDomain = "." + parts.slice(-2).join(".");
     }
 
     // ✅ 3. INITIALIZE CLIENT SUPABASE
+    // (Only if we actually need auth data for this request)
+    const isApi = pathname.startsWith("/api/");
+    const isPrefetch = request.headers.get("x-nextjs-prefetch") === "1";
+    const publicRoutes = ["/", "/auth/login", "/auth/callback", "/auth/set-password", "/auth/change-password", "/api/auth", "/api/onboarding", "/api/team", "/legal", "/privacy", "/contact"];
+    const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
+    const skipAuthCheck = isApi || isPrefetch || isPublicRoute;
+
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -65,7 +68,27 @@ export async function proxy(request: NextRequest) {
         }
     );
 
-    const { data: { user } } = await supabase.auth.getUser();
+    // ─── CRITICAL OPTIMIZATION: Skip heavy auth calls for API/Prefetch ───
+    // API routes handle their own auth. Prefetching shouldn't trigger token refresh.
+    let user = null;
+    if (!skipAuthCheck) {
+        const { data: { user: foundUser }, error: authError } = await supabase.auth.getUser();
+
+        // LOG AUTH FAILURES (Monitoring/Alerting)
+        if (authError && authError.status === 429) {
+            console.error("→ [AUTH] 429 Rate Limit in Middleware:", authError.message);
+            await adminSupabase.from('activity_logs').insert({
+                tenant_id: '00000000-0000-0000-0000-000000000000',
+                actor_id: '00000000-0000-0000-0000-000000000000',
+                action: 'auth:429_middleware',
+                target_type: 'auth_system',
+                metadata: { error: authError.message, path: pathname },
+                ip_address: request.headers.get('x-forwarded-for') || '0.0.0.0'
+            });
+        }
+
+        user = foundUser;
+    }
 
     // ✅ 4. SUBDOMAIN EXTRACTION & VALIDATION
     let tenantSubdomain = "";
@@ -117,9 +140,6 @@ export async function proxy(request: NextRequest) {
     }
 
     // ✅ 5. REDIRECTS & AUTH PROTECTION
-    const publicRoutes = ["/", "/auth/login", "/auth/callback", "/auth/set-password", "/auth/change-password", "/api/auth", "/api/onboarding", "/api/team", "/legal", "/privacy", "/contact"];
-    const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
-
     if (!user && !isPublicRoute) {
         return NextResponse.redirect(new URL("/auth/login", request.url));
     }
@@ -129,7 +149,8 @@ export async function proxy(request: NextRequest) {
     }
 
     // ✅ 6. MEMBERSHIP & ISOLATION CHECK
-    if (user && !isPublicRoute) {
+    // (Only for page requests where auth was actually checked)
+    if (user && !isPublicRoute && !isApi && !isPrefetch) {
         const { data: profile } = await supabase
             .from("profiles")
             .select("tenant_id")
@@ -137,15 +158,13 @@ export async function proxy(request: NextRequest) {
             .single();
 
         // No tenant assigned? Force onboarding
-        if (!profile?.tenant_id && pathname !== "/onboarding" && !pathname.startsWith("/api") && !pathname.startsWith("/auth")) {
+        if (!profile?.tenant_id && pathname !== "/onboarding" && !pathname.startsWith("/auth")) {
             return NextResponse.redirect(new URL("/onboarding", request.url));
         }
 
         // ❗ SECURITY: Cross-Tenant Leaking Prevention
-        // If they are on companyA.kultures.io but belong to companyB, block them.
         if (tenantId && profile?.tenant_id && profile.tenant_id !== tenantId) {
             console.error(`→ [AUTH] Tenant Mismatch: User belongs to ${profile.tenant_id} but tried accessing ${tenantId}`);
-            // Redirect them to THEIR own dashboard
             return NextResponse.rewrite(new URL("/404", request.url));
         }
     }
