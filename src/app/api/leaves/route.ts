@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
             .from('employees')
             .select('id, tenant_id')
             .eq('user_id', user.id)
+            .is('deleted_at', null)
             .single();
 
         if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
@@ -26,6 +27,7 @@ export async function GET(request: NextRequest) {
                 leave_type:leave_types(*)
             `)
             .eq('employee_id', profile.id)
+            .is('deleted_at', null)
             .order('created_at', { ascending: false });
 
         if (error) throw error;

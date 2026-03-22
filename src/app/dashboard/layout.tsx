@@ -1,16 +1,17 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import { redirect, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Sidebar from "@/components/dashboard/Sidebar";
 import { RoleProvider } from "@/lib/role-context";
 import { type Role } from "@/lib/permissions";
 import NotificationBell from "@/components/dashboard/NotificationBell";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search, ChevronDown, User, Plus } from "lucide-react";
+import { Search, ChevronDown } from "lucide-react";
 
 import { HeaderProvider, useHeader } from "@/lib/header-context";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 function DashboardNavbar({ user, membership }: { user: any, membership: any }) {
     const pathname = usePathname();
@@ -21,7 +22,7 @@ function DashboardNavbar({ user, membership }: { user: any, membership: any }) {
             <div className="flex flex-col gap-1">
                 <h1 className="text-xl font-bold text-zinc-900 flex items-center gap-2">
                     {title ? title : (
-                        <>Welcome back, <span className="text-indigo-600">{user.email?.split('@')[0] || 'User'}!</span></>
+                        <>Welcome back, <span className="text-indigo-600">{user?.email?.split('@')[0] || 'User'}!</span></>
                     )}
                 </h1>
                 <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
@@ -38,7 +39,6 @@ function DashboardNavbar({ user, membership }: { user: any, membership: any }) {
             </div>
 
             <div className="flex items-center gap-6">
-                {/* Dynamic Page Specific Actions */}
                 {actions.length > 0 && (
                     <div className="flex items-center gap-3 mr-6 pr-6 border-r border-zinc-100">
                         {actions.map((action, i) => (
@@ -69,12 +69,12 @@ function DashboardNavbar({ user, membership }: { user: any, membership: any }) {
 
                     <Link href="/dashboard/profile" className="flex items-center gap-3 group">
                         <div className="text-right hidden sm:block">
-                            <p className="text-xs font-bold text-zinc-900 leading-none">{user.email?.split('@')[0]}</p>
-                            <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mt-1">{membership.role}</p>
+                            <p className="text-xs font-bold text-zinc-900 leading-none">{user?.email?.split('@')[0]}</p>
+                            <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mt-1">{membership?.role}</p>
                         </div>
                         <div className="relative">
                             <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-xs font-bold text-indigo-600 border border-indigo-100 shadow-sm transition-transform group-hover:scale-105">
-                                {user.email?.[0].toUpperCase()}
+                                {user?.email?.[0].toUpperCase()}
                             </div>
                             <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
                         </div>
@@ -92,33 +92,34 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     const pathname = usePathname();
-    const [user, setUser] = useState<any>(null);
+    const { user, loading: authLoading } = useAuth();
     const [membership, setMembership] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        async function load() {
-            const supabase = createClient();
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                window.location.href = "/auth/login";
-                return;
-            }
-            setUser(user);
+        if (authLoading) return;
 
-            // 1. Try to get membership from tenant_members
-            const { data: membership, error: memberError } = await supabase
+        if (!user) {
+            window.location.href = "/auth/login";
+            return;
+        }
+
+        async function loadMembership() {
+            const supabase = createClient();
+
+            // Load Membership & Tenant Data (Runs ONLY ONCE per session init)
+            const { data: membershipData } = await supabase
                 .from("tenant_members")
                 .select("role, tenant_id, tenants(id, name, logo_url)")
-                .eq("user_id", user.id)
+                .eq("user_id", user!.id)
                 .single();
 
-            // 2. Fallback to profiles if needed
-            if (!membership || !membership.tenant_id) {
+            if (!membershipData || !membershipData.tenant_id) {
+                // Fallback to profiles
                 const { data: profile } = await supabase
                     .from("profiles")
                     .select("tenant_id, role")
-                    .eq("id", user.id)
+                    .eq("id", user!.id)
                     .single();
 
                 if (profile?.tenant_id) {
@@ -127,41 +128,20 @@ export default function DashboardLayout({
                         tenant_id: profile.tenant_id,
                         tenants: { id: profile.tenant_id, name: "Loading..." }
                     });
-                    setLoading(false);
+                } else {
+                    window.location.href = "/onboarding";
                     return;
                 }
-                window.location.href = "/onboarding";
-                return;
+            } else {
+                setMembership(membershipData);
             }
-
-            setMembership(membership);
             setLoading(false);
         }
-        load();
 
-        // ✅ Enterprise "Heartbeat" — keeps session fresh during idle periods
-        const heartbeat = setInterval(async () => {
-            console.log("→ [AUTH] Heartbeat triggered at:", new Date().toLocaleTimeString());
-            // Consolidate: Just hit the heartbeat API which checks session on server
-            // This also helps keep the Vercel/Server session active
-            await fetch('/api/auth/heartbeat').catch(() => { });
-        }, 10 * 60 * 1000); // 10 minutes (standard for Supabase sessions)
+        loadMembership();
+    }, [user, authLoading]);
 
-        // ✅ Check 8: Tab Focus Refresh
-        const onFocus = () => {
-            console.log("→ [AUTH] Tab focus refresh triggered at:", new Date().toLocaleTimeString());
-            const supabase = createClient();
-            supabase.auth.getUser();
-        };
-        window.addEventListener("focus", onFocus);
-
-        return () => {
-            clearInterval(heartbeat);
-            window.removeEventListener("focus", onFocus);
-        };
-    }, []);
-
-    if (loading) return (
+    if (authLoading || loading) return (
         <div className="h-screen w-screen flex flex-col items-center justify-center bg-white">
             <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-4" />
             <p className="text-sm font-bold text-zinc-400 animate-pulse uppercase tracking-widest">Initialising Dashboard</p>
@@ -180,7 +160,7 @@ export default function DashboardLayout({
                         tenantId={tenant?.id}
                         tenantName={tenant?.name ?? "Your Company"}
                         logoUrl={tenant?.logo_url}
-                        userEmail={user.email ?? ""}
+                        userEmail={user?.email ?? ""}
                         userRole={membership.role}
                     />
                     <main className="flex-1 overflow-y-auto relative flex flex-col bg-[#F9FAFB]/50">

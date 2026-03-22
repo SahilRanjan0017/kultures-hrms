@@ -23,6 +23,7 @@ export async function GET() {
             .from("company_policies")
             .select("*")
             .eq("tenant_id", membership.tenant_id)
+            .is("deleted_at", null)
             .eq("is_active", true)
             .order("created_at", { ascending: false });
 

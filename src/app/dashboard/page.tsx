@@ -69,6 +69,7 @@ export default async function DashboardPage() {
         `)
         .eq("user_id", user.id)
         .eq("tenant_id", tenantId)
+        .is("deleted_at", null)
         .single();
 
     if (!isEmployeeOrManager) {
@@ -81,11 +82,11 @@ export default async function DashboardPage() {
             { count: totalLeavesMonth },
             { data: recentEmployees }
         ] = await Promise.all([
-            adminSupabase.from("employees").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "active"),
+            adminSupabase.from("employees").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "active").is("deleted_at", null),
             adminSupabase.from("attendance_logs").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("date", todayDate),
-            adminSupabase.from("leave_requests").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "pending"),
-            adminSupabase.from("leave_requests").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).gte("start_date", `${currentMonth}-01`),
-            adminSupabase.from("employees").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: false }).limit(10)
+            adminSupabase.from("leave_requests").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "pending").is("deleted_at", null),
+            adminSupabase.from("leave_requests").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).gte("start_date", `${currentMonth}-01`).is("deleted_at", null),
+            adminSupabase.from("employees").select("*").eq("tenant_id", tenantId).is("deleted_at", null).order("created_at", { ascending: false }).limit(10)
         ]);
 
         return (

@@ -29,8 +29,11 @@ const SIZE_OPTIONS = [
     "500+ employees",
 ];
 
+import { useAuth } from "@/components/providers/AuthProvider";
+
 export default function OnboardingPage() {
     const router = useRouter();
+    const { user, loading: authLoading } = useAuth();
 
     const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
     const [message, setMessage] = useState("");
@@ -43,34 +46,36 @@ export default function OnboardingPage() {
 
     // ✅ Check if user already belongs to a tenant
     useEffect(() => {
+        if (authLoading) return;
+        if (!user) {
+            router.push("/auth/login");
+            return;
+        }
+
         async function checkExistingTenant() {
             const supabase = createClient();
 
             // ✅ Handle OTP expired error in URL hash
             const hash = window.location.hash;
             if (hash.includes("error=access_denied") || hash.includes("otp_expired")) {
-                router.push("/"); // ← send back to login
+                router.push("/auth/login");
                 return;
             }
-
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
 
             // ✅ Check profiles table
             let { data } = await supabase
                 .from("profiles")
                 .select("tenant_id, role")
-                .eq("id", user.id)
+                .eq("id", user!.id)
                 .single();
 
             // ✅ If they are an admin, they have already onboarded
             if (data?.tenant_id && data.role === 'admin') {
                 router.push("/dashboard");
             }
-
         }
         checkExistingTenant();
-    }, [router]);
+    }, [user, authLoading, router]);
 
 
 

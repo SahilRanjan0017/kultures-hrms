@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ interface Policy {
 
 export default function HandbookPage() {
     const supabase = createClient();
+    const { user } = useAuth();
     const [policies, setPolicies] = useState<Policy[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
@@ -57,7 +59,7 @@ export default function HandbookPage() {
     }, []);
 
     const checkUserRole = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
+        // user comes from global AuthProvider — no extra getUser() call needed
         if (!user) return;
 
         const { data: membership } = await supabase

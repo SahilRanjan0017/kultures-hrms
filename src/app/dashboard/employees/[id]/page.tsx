@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useRole } from '@/lib/role-context';
 import RoleGuard from '@/components/dashboard/RoleGuard';
-import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/components/providers/AuthProvider';
 import type { Role } from '@/lib/permissions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,15 +49,11 @@ export default function EmployeeProfilePage() {
     const { id } = useParams();
     const router = useRouter();
     const role = useRole();
+    const { user: currentUser } = useAuth(); // from global AuthProvider — no network call
     const [employee, setEmployee] = useState<Employee | null>(null);
     const [loading, setLoading] = useState(true);
-    const [currentUser, setCurrentUser] = useState<any>(null);
 
     useEffect(() => {
-        const supabase = createClient();
-        supabase.auth.getUser().then(({ data: { user } }) => {
-            setCurrentUser(user);
-        });
         fetchEmployee();
     }, [id]);
 

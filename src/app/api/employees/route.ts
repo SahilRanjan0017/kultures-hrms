@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
                 .from('employees')
                 .select('id, full_name, email, emp_code, role, department, designation, status, avatar_url')
                 .eq('user_id', user.id)
+                .is('deleted_at', null)
                 .single();
             return NextResponse.json({ employees: myself ? [myself] : [] });
         }
@@ -45,7 +46,8 @@ export async function GET(request: NextRequest) {
         let query = adminSupabase
             .from('employees')
             .select('id, full_name, email, emp_code, role, department, designation, status, avatar_url')
-            .eq('tenant_id', profile.tenant_id);
+            .eq('tenant_id', profile.tenant_id)
+            .is('deleted_at', null);
 
         // Role-based directory visibility filters
         if (userRole === 'hr') {

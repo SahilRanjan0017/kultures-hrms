@@ -1,14 +1,17 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 
+import { useAuth } from "@/components/providers/AuthProvider";
+
 function LoginContent() {
     const router = useRouter();
+    const { user: globalUser, loading: authLoading } = useAuth();
     const searchParams = useSearchParams();
     const urlError = searchParams.get("error"); // ✅ catch OTP expired error
 
@@ -18,6 +21,13 @@ function LoginContent() {
     const [password, setPassword] = useState("");
     const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
     const [message, setMessage] = useState("");
+
+    // ✅ Redirect if already logged in
+    useEffect(() => {
+        if (!authLoading && globalUser) {
+            router.push("/dashboard");
+        }
+    }, [globalUser, authLoading, router]);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -46,24 +56,18 @@ function LoginContent() {
         }
 
         // Login with email + password
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
             email: loginEmail,
             password,
         });
 
-        if (error) {
+        if (error || !data.user) {
             setStatus("error");
             setMessage("Invalid credentials. Please check and try again.");
             return;
         }
 
-        // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-            setStatus("error");
-            setMessage("Login failed. Please try again.");
-            return;
-        }
+        const user = data.user;
 
         // ✅ Robust API-based Sync
         console.log("→ [CLIENT] Triggering /api/auth/sync");
@@ -87,8 +91,6 @@ function LoginContent() {
         } else {
             router.push("/dashboard");
         }
-
-
     }
 
     return (
