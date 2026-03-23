@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
             .from('employees')
             .select('id, role, tenant_id')
             .eq('user_id', user.id)
+            .is('deleted_at', null)
             .single();
 
         if (!profile || !['admin', 'hr', 'manager'].includes(profile.role)) {
@@ -29,7 +30,8 @@ export async function GET(request: NextRequest) {
                 leave_type:leave_type_id(*)
             `)
             .eq('tenant_id', profile.tenant_id)
-            .eq('status', 'pending');
+            .eq('status', 'pending')
+            .is('deleted_at', null);
 
         // If manager, only show their direct reports' requests
         // Note: This requires the manager_id field in employees table.

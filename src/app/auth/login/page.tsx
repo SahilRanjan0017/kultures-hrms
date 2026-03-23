@@ -78,7 +78,7 @@ function LoginContent() {
         // Use synced profile or fallback to client-side check
         let profile = syncResult?.profile || (await supabase
             .from("profiles")
-            .select("tenant_id, is_first_login, role, employee_id")
+            .select("tenant_id, is_first_login, role, employee_id, onboarding_completed")
             .eq("id", user.id)
             .single()).data;
 
@@ -87,6 +87,8 @@ function LoginContent() {
         if (profile?.is_first_login) {
             router.push("/auth/set-password");
         } else if (!profile?.tenant_id) {
+            router.push("/onboarding");
+        } else if (!profile?.onboarding_completed) {
             router.push("/onboarding");
         } else {
             router.push("/dashboard");

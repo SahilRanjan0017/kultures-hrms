@@ -153,12 +153,13 @@ export async function proxy(request: NextRequest) {
     if (user && !isPublicRoute && !isApi && !isPrefetch) {
         const { data: profile } = await supabase
             .from("profiles")
-            .select("tenant_id")
+            .select("tenant_id, onboarding_completed")
             .eq("id", user.id)
             .single();
 
-        // No tenant assigned? Force onboarding
-        if (!profile?.tenant_id && pathname !== "/onboarding" && !pathname.startsWith("/auth")) {
+        // ❗ ENFORCEMENT: No tenant or onboarding not completed? Force onboarding.
+        const needsOnboarding = !profile?.tenant_id || !profile?.onboarding_completed;
+        if (needsOnboarding && pathname !== "/onboarding" && !pathname.startsWith("/auth") && !pathname.startsWith("/api")) {
             return NextResponse.redirect(new URL("/onboarding", request.url));
         }
 

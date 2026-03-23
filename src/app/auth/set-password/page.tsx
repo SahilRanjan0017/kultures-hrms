@@ -44,7 +44,7 @@ export default function SetPasswordPage() {
         // Clear is_first_login flag
         await fetch("/api/auth/clear-password-flag", { method: "POST" });
 
-        router.push("/dashboard");
+        router.push("/onboarding");
     }
 
     return (

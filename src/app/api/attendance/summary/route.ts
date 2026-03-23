@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
             .from("employees")
             .select("id, tenant_id")
             .eq("user_id", user.id)
+            .is("deleted_at", null)
             .single();
 
         if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
@@ -31,6 +32,7 @@ export async function GET(request: NextRequest) {
             .from("attendance_logs")
             .select("*")
             .eq("employee_id", employeeId)
+            .is("deleted_at", null)
             .gte("date", startDate)
             .lt("date", endDate);
 

@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
             .from("employees")
             .select("id, tenant_id")
             .eq("user_id", user.id)
+            .is("deleted_at", null)
             .single();
 
         if (empError || !employee) {
@@ -34,6 +35,7 @@ export async function POST(request: NextRequest) {
             .select("*")
             .eq("employee_id", employee.id)
             .is("clock_out", null)
+            .is("deleted_at", null)
             .order("clock_in", { ascending: false })
             .limit(1)
             .single();
