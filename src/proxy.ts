@@ -140,12 +140,27 @@ export async function proxy(request: NextRequest) {
     }
 
     // ✅ 5. REDIRECTS & AUTH PROTECTION
+    const handleRedirect = (path: string) => {
+        const redirectResponse = NextResponse.redirect(new URL(path, request.url));
+        response.cookies.getAll().forEach((cookie) => {
+            redirectResponse.cookies.set(cookie.name, cookie.value, {
+                domain: cookie.domain,
+                path: cookie.path,
+                expires: cookie.expires,
+                httpOnly: cookie.httpOnly,
+                secure: cookie.secure,
+                sameSite: cookie.sameSite,
+            });
+        });
+        return redirectResponse;
+    };
+
     if (!user && !isPublicRoute) {
-        return NextResponse.redirect(new URL("/auth/login", request.url));
+        return handleRedirect("/auth/login");
     }
 
     if (user && (pathname === "/" || pathname === "/auth/login")) {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
+        return handleRedirect("/dashboard");
     }
 
     // ✅ 6. MEMBERSHIP & ISOLATION CHECK
@@ -153,14 +168,22 @@ export async function proxy(request: NextRequest) {
     if (user && !isPublicRoute && !isApi && !isPrefetch) {
         const { data: profile } = await supabase
             .from("profiles")
-            .select("tenant_id, onboarding_completed")
+            .select("tenant_id, onboarding_completed, role, is_first_login")
             .eq("id", user.id)
             .single();
 
+        // ❗ ENFORCEMENT: First login? Force password change.
+        if (profile?.is_first_login && pathname !== "/auth/set-password" && !pathname.startsWith("/api")) {
+            return handleRedirect("/auth/set-password");
+        }
+
         // ❗ ENFORCEMENT: No tenant or onboarding not completed? Force onboarding.
-        const needsOnboarding = !profile?.tenant_id || !profile?.onboarding_completed;
+        // ✅ EXCEPTION: Employees with a tenant_id skip the onboarding funnel.
+        const isEmployeeWithTenant = profile?.role === "employee" && profile?.tenant_id;
+        const needsOnboarding = !profile?.tenant_id || (!profile?.onboarding_completed && !isEmployeeWithTenant);
+
         if (needsOnboarding && pathname !== "/onboarding" && !pathname.startsWith("/auth") && !pathname.startsWith("/api")) {
-            return NextResponse.redirect(new URL("/onboarding", request.url));
+            return handleRedirect("/onboarding");
         }
 
         // ❗ SECURITY: Cross-Tenant Leaking Prevention

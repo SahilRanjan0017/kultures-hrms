@@ -132,6 +132,11 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(new URL("/onboarding", origin));
     }
 
+    // ✅ If it's an employee, they always go to dashboard (unless first login, handled above)
+    if (profile.role === "employee") {
+        return NextResponse.redirect(new URL("/dashboard", origin));
+    }
+
     return NextResponse.redirect(new URL(next, origin));
 
 }

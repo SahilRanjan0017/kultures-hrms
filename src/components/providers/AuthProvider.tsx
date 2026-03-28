@@ -57,11 +57,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
 
                 const {
-                    data: { session: initial },
+                    data: { user: initialUser },
                     error
-                } = await supabase.auth.getSession();
+                } = await supabase.auth.getUser();
 
-                // Handle Auth errors (429 or Lock timeouts)
+                // If we get an auth error related to refresh tokens, clear everything
+                if (error && (error.message.includes("refresh_token_not_found") || error.status === 400)) {
+                    // Only log as error if it's NOT a simple missing session
+                    if (!error.message.includes("Auth session missing")) {
+                        console.error("→ [AUTH] Terminal session error, signing out:", error.message);
+                    }
+                    await supabase.auth.signOut();
+                    setUser(null);
+                    setSession(null);
+                    setLoading(false);
+                    return;
+                }
+
+                // Get session for the token but use user for the state
+                const { data: { session: initialSession } } = await supabase.auth.getSession();
+
+                // Handle other Auth errors (429 or Lock timeouts)
                 if (error) {
                     console.warn(`→ [AUTH] Session Read Error (Attempt ${retryCount + 1}):`, error.message);
 
@@ -83,8 +99,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     }
                 }
 
-                setSession(initial);
-                setUser(initial?.user ?? null);
+                setSession(initialSession);
+                setUser(initialUser ?? null);
             } catch (err) {
                 console.error("→ [AUTH] Initial session read failed:", err);
             } finally {

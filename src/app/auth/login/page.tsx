@@ -88,6 +88,9 @@ function LoginContent() {
             router.push("/auth/set-password");
         } else if (!profile?.tenant_id) {
             router.push("/onboarding");
+        } else if (profile.role === "employee") {
+            // ✅ Employees with a tenant always go to dashboard
+            router.push("/dashboard");
         } else if (!profile?.onboarding_completed) {
             router.push("/onboarding");
         } else {

@@ -13,9 +13,9 @@ function generateSlug(name: string): string {
 
 export async function POST(request: NextRequest) {
     try {
-        const { companyName, industry, size } = await request.json();
+        const { companyName, industry, size, adminPhone } = await request.json();
 
-        if (!companyName || !industry || !size) {
+        if (!companyName || !industry || !size || !adminPhone) {
             return NextResponse.json(
                 { ok: false, message: "All fields are required" },
                 { status: 400 }
@@ -76,7 +76,8 @@ export async function POST(request: NextRequest) {
                 emp_code: empCode,
                 role: "admin",
                 status: "active",
-                user_id: user.id
+                user_id: user.id,
+                phone: adminPhone // ✅ Capture admin contact
             }, { onConflict: 'user_id' })
             .select("id")
             .single();
@@ -94,6 +95,7 @@ export async function POST(request: NextRequest) {
                 tenant_id: tenant.id,
                 role: "admin",
                 employee_id: employeeId,
+                onboarding_completed: true, // ✅ BREAKS THE REDIRECT LOOP
             })
             .eq("id", user.id);
 

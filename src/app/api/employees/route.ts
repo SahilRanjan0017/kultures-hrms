@@ -110,11 +110,33 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
         }
 
-        // Insert new employee record directly
+        // 1. Create the Auth User via Admin API
+        const { data: authUser, error: authError } = await adminSupabase.auth.admin.createUser({
+            email: payload.email,
+            password: payload.emp_code, // Default password is their EMP code
+            email_confirm: true,
+            user_metadata: {
+                full_name: payload.full_name,
+                role: payload.role || 'employee'
+            }
+        });
+
+        if (authError) {
+            console.error('Auth Error during employee creation:', authError.message);
+            // If user already exists, we might want to link them instead of failing
+            if (!authError.message.includes('already been registered')) {
+                return NextResponse.json({ error: `Auth Error: ${authError.message}` }, { status: 400 });
+            }
+        }
+
+        const userId = authUser?.user?.id;
+
+        // 2. Insert new employee record
         const { data: newEmployee, error } = await adminSupabase
             .from('employees')
             .insert({
                 tenant_id: profile.tenant_id,
+                user_id: userId, // Link to the newly created auth user (if created)
                 full_name: payload.full_name,
                 email: payload.email,
                 emp_code: payload.emp_code,
@@ -131,7 +153,20 @@ export async function POST(request: NextRequest) {
             .single();
 
         if (error) {
+            // Clean up auth user if employee record fails? (Optional, but safer for consistency)
             return NextResponse.json({ error: error.message }, { status: 400 });
+        }
+
+        // 3. Optional: Pre-create profile to avoid race conditions and set is_first_login explicitly
+        if (userId) {
+            await adminSupabase.from('profiles').upsert({
+                id: userId,
+                tenant_id: profile.tenant_id,
+                email: payload.email,
+                role: payload.role || 'employee',
+                is_first_login: true,
+                onboarding_completed: payload.role === 'employee'
+            });
         }
 
         return NextResponse.json({ success: true, employeeId: newEmployee.id });

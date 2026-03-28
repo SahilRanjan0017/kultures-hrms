@@ -43,6 +43,7 @@ export default function OnboardingPage() {
         companyName: "",
         industry: "",
         size: "",
+        adminPhone: "",
     });
 
     const [profileForm, setProfileForm] = useState({
@@ -76,17 +77,24 @@ export default function OnboardingPage() {
                 .eq("id", user!.id)
                 .single();
 
-            if (profile?.onboarding_completed) {
+            // ✅ Self-Correction: If they are marked 'completed' but have no tenant, they aren't actually done.
+            if (profile?.onboarding_completed && !profile?.tenant_id) {
+                console.log("→ Resetting stale onboarding completion flag");
+                await supabase.from("profiles").update({ onboarding_completed: false }).eq("id", user!.id);
+                // Refresh local profile data
+                const fresh = await supabase.from("profiles").select("*").eq("id", user!.id).single();
+                profile = fresh.data;
+            }
+
+            // ✅ Strict Completion Check: Must have BOTH flag AND tenant_id
+            if (profile?.onboarding_completed && profile?.tenant_id) {
                 router.push("/dashboard");
                 return;
             }
 
-            setRole(profile?.role as any || "employee");
-
-            // ✅ If they are an admin and have a tenant_id, they've already onboarded
-            if (profile?.tenant_id && profile.role === 'admin') {
-                router.push("/dashboard");
-            }
+            // ✅ Funnel Detection: If no tenant_id, they are likely a new Admin setting up.
+            const forceRole = profile?.tenant_id ? (profile?.role as any || "employee") : "admin";
+            setRole(forceRole);
         }
         checkStatus();
     }, [user, authLoading, router]);
@@ -178,21 +186,25 @@ export default function OnboardingPage() {
                                 <Input name="companyName" value={companyForm.companyName} onChange={handleCompanyChange} required placeholder="e.g. Kultures Pvt Ltd" />
                             </div>
                             <div className="space-y-2">
-                                <label className="block text-sm font-medium text-zinc-700">Industry</label>
+                                <label className="block text-sm font-medium text-zinc-700">Sector / Industry</label>
                                 <select name="industry" value={companyForm.industry} onChange={handleCompanyChange} required className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm">
-                                    <option value="" disabled>Select your industry</option>
+                                    <option value="" disabled>Select your sector</option>
                                     {INDUSTRY_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                 </select>
                             </div>
                             <div className="space-y-2">
                                 <label className="block text-sm font-medium text-zinc-700">Company Size</label>
                                 <select name="size" value={companyForm.size} onChange={handleCompanyChange} required className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm">
-                                    <option value="" disabled>Select company size</option>
+                                    <option value="" disabled>Select workforce size</option>
                                     {SIZE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                 </select>
                             </div>
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-zinc-700">Admin Contact Number</label>
+                                <Input name="adminPhone" value={companyForm.adminPhone} onChange={handleCompanyChange} required placeholder="+91 9876543210" />
+                            </div>
                             <Button type="submit" className="w-full" disabled={status === "loading"}>
-                                {status === "loading" ? "Processing..." : "Finish Set Up →"}
+                                {status === "loading" ? "Setting up..." : "Finish Set Up →"}
                             </Button>
                         </form>
                     </>

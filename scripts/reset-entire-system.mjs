@@ -58,22 +58,41 @@ async function resetSystem() {
         }
     }
 
-    console.log("\n--- Cleaning Authentication Users ---");
-    const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
+    console.log("\n--- Cleaning Authentication Users (Paginated) ---");
+    let allUsers = [];
+    let page = 1;
+    const perPage = 1000;
 
-    if (listError) {
-        console.error("❌ Error listing users:", listError.message);
-    } else if (users.length === 0) {
+    // 1. Fetch ALL users across all pages
+    while (true) {
+        const { data: { users }, error: listError } = await supabase.auth.admin.listUsers({
+            page: page,
+            perPage: perPage
+        });
+
+        if (listError) {
+            console.error("❌ Error listing users:", listError.message);
+            break;
+        }
+
+        if (users.length === 0) break;
+        allUsers = [...allUsers, ...users];
+        page++;
+    }
+
+    if (allUsers.length === 0) {
         console.log("No users found in Auth.");
     } else {
-        console.log(`Found ${users.length} users. Deleting...`);
-        for (const user of users) {
+        console.log(`Found ${allUsers.length} users. Deleting one-by-one...`);
+        for (const user of allUsers) {
             const { error: deleteError } = await supabase.auth.admin.deleteUser(user.id);
             if (deleteError) {
-                console.error(`❌ Failed to delete ${user.email}:`, deleteError.message);
+                console.error(`❌ Failed to delete ${user.email || user.id}:`, deleteError.message);
             } else {
-                console.log(`✅ Deleted ${user.email}`);
+                console.log(`✅ Deleted ${user.email || user.id}`);
             }
+            // Small stagger to avoid rate limits on Auth API
+            await new Promise(r => setTimeout(r, 100));
         }
     }
 

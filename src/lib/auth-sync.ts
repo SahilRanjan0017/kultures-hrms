@@ -34,8 +34,7 @@ export async function syncUserSession(userId: string, email: string, supabase: S
             employee_id: employeeId,
             role: role,
             email: email,
-            // We removed explicit is_first_login: false here to allow 
-            // the database default or the value set during invitation to persist.
+            onboarding_completed: role === "employee", // ✅ Employees skip additional onboarding
         })
         .select()
         .single();
